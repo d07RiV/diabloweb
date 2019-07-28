@@ -1,0 +1,143 @@
+body, #root, .App {
+  overflow: hidden;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+.App {
+  background-color: #000;
+  &.dropping {
+    background-color: #111;
+  }
+}
+.Body, .BodyV {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: auto;
+  left: calc(50% - 200vh / 3);
+  width: calc(400vh / 3);
+}
+@media (max-aspect-ratio: 640/480) {
+  .Body {
+    left: 0;
+    right: 0;
+    width: auto;
+    top: calc(50% - 37.5vw);
+    height: 75vw;
+  }
+  .BodyV {
+    left: 0;
+    right: 0;
+    width: auto;
+  }
+}
+.BodyV {
+  pointer-events: none;
+}
+
+.App {
+  canvas {
+    width: 100%;
+    height: 100%;
+    cursor: none;
+    visibility: hidden;
+  }
+  &.started canvas {
+    visibility: visible;
+  }
+  .keyboard {
+    position: absolute;
+    left: -1000px;
+    top: -1000px;
+    width: 100px;
+    height: 100px;
+    pointer-events: auto;
+  }
+
+  .start, .error, .loading {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .start, .error {
+    max-width: 90%;
+    max-height: 90%;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+
+  .start {
+    border: 1px solid #888;
+    padding: 12px;
+    color: #fff;
+    font-size: 18px;
+    text-align: center;
+    background: #000;
+    p {
+      margin: 12px 0;
+    }
+    .startButton {
+      display: inline-block;
+      border: 1px solid #fff;
+      background: #000;
+      font-size: 2em;
+      padding: 4px 18px;
+      cursor: pointer;
+      &:hover {
+        background-color: #111;
+      }
+    }
+  }
+
+  .error {
+    border: 1px solid #800;
+    background: #400;
+    padding: 12px;
+    color: #f00;
+    font-size: 18px;
+    text-align: center;
+  }
+
+  .loading {
+    color: #888;
+    font-size: 48px;
+    text-align: center;
+    width: 75%;
+    .progressBar {
+      display: block;
+      position: relative;
+      margin-top: 16px;
+      width: 100%;
+      height: 40px;
+      border: 2px solid #888;
+      span {
+        position: absolute;
+        left: 3px;
+        top: 3px;
+        bottom: 3px;
+        right: 3px;
+      }
+      span span {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        background-color: #888;
+      }
+    }
+  }
+  a, .link {
+    display: inline-block;
+    color: rgb(112, 112, 255);
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
+    cursor: pointer;
+  }
+}

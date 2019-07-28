@@ -11,6 +11,8 @@
 # production
 /build
 
+public/spawn.mpq
+
 # misc
 .DS_Store
 .env.local
