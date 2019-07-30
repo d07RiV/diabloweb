@@ -9,7 +9,7 @@ function no_sound() {
   };
 }
 
-export default async function init_sound() {
+export default function init_sound() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) {
     return no_sound();
@@ -17,34 +17,29 @@ export default async function init_sound() {
 
   const context = new AudioContext();
   const sounds = new Map();
-  let nextId = 0;
 
   return {
-    create_sound(data, length, channels, rate) {
+    create_sound(id, data, length, channels, rate) {
       const buffer = context.createBuffer(channels, length, rate);
       for (let i = 0; i < channels; ++i) {
         buffer.copyToChannel(data.subarray(i * length, i * length + length), i);
       }
-      const id = nextId++;
       sounds.set(id, {
         buffer,
         gain: context.createGain(),
         panner: new StereoPannerNode(context, {pan: 0}),
       });
-      return id;
     },
-    duplicate_sound(id) {
-      const src = sounds.get(id);
+    duplicate_sound(id, srcId) {
+      const src = sounds.get(srcId);
       if (!src) {
-        return -1;
+        return;
       }
-      id = nextId++;
       sounds.set(id, {
         buffer: src.buffer,
         gain: context.createGain(),
         panner: new StereoPannerNode(context, {pan: 0}),
       });
-      return id;
     },
     play_sound(id, volume, pan, loop) {
       const src = sounds.get(id);

@@ -1,12 +1,8 @@
 import React from 'react';
 import './App.scss';
 
-import init_fs from './api/fs';
-import init_graphics from './api/graphics';
-import init_error from './api/error';
-import init_sound from './api/sound';
-import init_spawn from './api/spawn';
-import init_retail from './api/retail';
+import create_fs from './fs';
+import load_game from './api/loader';
 
 function isDropFile(e) {
   if (e.dataTransfer.items) {
@@ -39,7 +35,7 @@ class App extends React.Component {
   state = {started: false, loading: false, dropping: 0};
   cursorPos = {x: 0, y: 0};
 
-  fs = init_fs(this);
+  fs = create_fs(this);
 
   componentDidMount() {
     document.addEventListener("drop", this.onDrop, true);
@@ -72,8 +68,63 @@ class App extends React.Component {
     this.setState(({dropping}) => ({dropping: Math.max(dropping + inc, 0)}));
   }
 
-  setError(text) {
+  onError(text) {
     this.setState({error: text});
+  }
+
+  openKeyboard(open) {
+    if (open) {
+      this.keyboard.focus();
+    } else {
+      this.keyboard.blur();
+    }
+  }
+
+  setCursorPos(x, y) {
+    const rect = this.canvas.getBoundingClientRect();
+    this.cursorPos = {
+      x: rect.left + (rect.right - rect.left) * x / 640,
+      y: rect.top + (rect.bottom - rect.top) * y / 480,
+    };
+    setTimeout(() => {
+      this.game("DApi_Mouse", 0, 0, 0, x, y);
+    });
+  }
+
+  onProgress({type, loaded, total}) {
+    this.setState({progress: loaded / total});
+  }
+
+  onRender({images, text, clip}) {
+    const ctx = this.renderer;
+    if (!ctx) {
+      return;
+    }
+    for (let {x, y, w, h, image, data} of images) {
+      if (!image) {
+        image = ctx.createImageData(w, h);
+        image.data.set(data);
+      }
+      ctx.putImageData(image, x, y);
+    }
+    if (text.length) {
+      ctx.save();
+      ctx.font = 'bold 13px Times New Roman';
+      if (clip) {
+        const {x0, y0, x1, y1} = clip;
+        ctx.beginPath();
+        ctx.rect(x0, y0, x1 - x0, y1 - y0);
+        ctx.clip();
+      }
+      for (let {x, y, text: str, color} of text) {
+        const r = ((color >> 16) & 0xFF);
+        const g = ((color >> 8) & 0xFF);
+        const b = (color & 0xFF);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillText(str, x, y + 22);
+      }
+      ctx.restore();
+    }
   }
 
   start(file) {
@@ -86,27 +137,9 @@ class App extends React.Component {
     this.renderer = this.canvas.getContext("2d", {alpha: false});
     this.setState({loading: true});
 
-    Promise.all([
-      this.fs,
-      init_graphics(this),
-      init_error(this),
-      init_sound(this),
-      file ? init_retail(this, file) : init_spawn(this),
-    ]).then(([fs, graphics, error, sound, wasm]) => {
-      window.DApi = {
-        ...fs,
-        ...graphics,
-        ...error,
-        ...sound,
-        open_keyboard: () => {
-          this.keyboard.focus();
-        },
-        close_keyboard: () => {
-          this.keyboard.blur();
-        },
-      };
+    load_game(this, file).then(game => {
+      this.game = game;
 
-      this.wasm = wasm;
       document.addEventListener('mousemove', this.onMouseMove, true);
       document.addEventListener('mousedown', this.onMouseDown, true);
       document.addEventListener('mouseup', this.onMouseUp, true);
@@ -120,17 +153,7 @@ class App extends React.Component {
       window.addEventListener('resize', this.onResize);
 
       this.setState({started: true});
-
-      this.execute("DApi_Init", Math.floor(performance.now()));
-
-      requestAnimationFrame(this.drawFrame);
-    }).catch(e => {
-      this.setState({error: e.message});
-    });
-  }
-  drawFrame = time => {
-    this.execute("DApi_Render", Math.floor(time));
-    requestAnimationFrame(this.drawFrame);
+    }, e => this.onError(e.message));
   }
 
   pointerLocked() {
@@ -151,17 +174,6 @@ class App extends React.Component {
     };
   }
 
-  setCursorPos(x, y) {
-    const rect = this.canvas.getBoundingClientRect();
-    this.cursorPos = {
-      x: rect.left + (rect.right - rect.left) * x / 640,
-      y: rect.top + (rect.bottom - rect.top) * y / 480,
-    };
-    setTimeout(() => {
-      this.execute("DApi_Mouse", 0, 0, 0, x, y);
-    });
-  }
-
   mouseButton(e) {
     switch (e.button) {
     case 0: return 1;
@@ -176,22 +188,6 @@ class App extends React.Component {
     return (e.shiftKey ? 1 : 0) + (e.ctrlKey ? 2 : 0) + (e.altKey ? 4 : 0);
   }
 
-  execute(func, ...args) {
-    try {
-      this.wasm["_" + func](...args);
-    } catch (e) {
-      this.setState(({error}) => {
-        if (!error) {
-          return {error: e.message};
-        }
-      });
-    }
-  }
-
-  onProgress = value => {
-    this.setState({progress: value});
-  }
-
   onResize = () => {
     document.exitPointerLock();
   }
@@ -199,8 +195,8 @@ class App extends React.Component {
   onPointerLockChange = () => {
     if (window.screen && window.innerHeight === window.screen.height && !this.pointerLocked()) {
       // assume that the user pressed escape
-      this.execute("DApi_Key", 0, 0, 27);
-      this.execute("DApi_Key", 1, 0, 27);
+      this.game("DApi_Key", 0, 0, 27);
+      this.game("DApi_Key", 1, 0, 27);
     }
   }
 
@@ -209,37 +205,41 @@ class App extends React.Component {
   }
 
   onMouseMove = e => {
+    if (!this.canvas) return;
     const {x, y} = this.mousePos(e);
-    this.execute("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
+    this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
     e.preventDefault();
   }
 
   onMouseDown = e => {
+    if (!this.canvas) return;
     const {x, y} = this.mousePos(e);
     if (this.touchEvent) {
       this.element.requestFullscreen();
       this.touchEvent = false;
-      this.execute("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
+      this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
     } else if (window.screen && window.innerHeight === window.screen.height) {
       // we're in fullscreen, let's get pointer lock!
       if (!this.pointerLocked()) {
         this.canvas.requestPointerLock();
       }
     }
-    this.execute("DApi_Mouse", 1, this.mouseButton(e), this.eventMods(e), x, y);
+    this.game("DApi_Mouse", 1, this.mouseButton(e), this.eventMods(e), x, y);
     e.preventDefault();
   }
 
   onMouseUp = e => {
+    if (!this.canvas) return;
     const {x, y} = this.mousePos(e);
-    this.execute("DApi_Mouse", 2, this.mouseButton(e), this.eventMods(e), x, y);
+    this.game("DApi_Mouse", 2, this.mouseButton(e), this.eventMods(e), x, y);
     e.preventDefault();
   }
 
   onKeyDown = e => {
-    this.execute("DApi_Key", 0, this.eventMods(e), e.keyCode);
+    if (!this.canvas) return;
+    this.game("DApi_Key", 0, this.eventMods(e), e.keyCode);
     if (e.keyCode >= 32 && e.key.length === 1) {
-      this.execute("DApi_Char", e.key.charCodeAt(0));
+      this.game("DApi_Char", e.key.charCodeAt(0));
     }
   }
 
@@ -248,10 +248,11 @@ class App extends React.Component {
   }
 
   onKeyUp = e => {
-    this.execute("DApi_Key", 1, this.eventMods(e), e.keyCode);
+    if (!this.canvas) return;
+    this.game("DApi_Key", 1, this.eventMods(e), e.keyCode);
     const text = this.keyboard.value;
     const values = [...Array(15)].map((_, i) => i < text.length ? text.charCodeAt(i) : 0);
-    this.execute("DApi_SyncText", ...values);
+    this.game("DApi_SyncText", ...values);
   }
 
   parseFile = e => {
@@ -261,17 +262,21 @@ class App extends React.Component {
     }
   }
 
+  setCanvas = e => this.canvas = e;
+  setElement = e => this.element = e;
+  setKeyboard = e => this.keyboard = e;
+
   render() {
     const {started, loading, error, progress, dropping} = this.state;
     return (
-      <div className={"App" + (started ? " started" : "") + (dropping ? " dropping" : "")} ref={e => this.element = e}>
+      <div className={"App" + (started ? " started" : "") + (dropping ? " dropping" : "")} ref={this.setElement}>
         <div className="Body">
           {!error && (
-            <canvas ref={e => this.canvas = e} width={640} height={480}/>
+            <canvas ref={this.setCanvas} width={640} height={480}/>
           )}
         </div>
         <div className="BodyV">
-          <input type="text" className="keyboard" ref={e => this.keyboard = e}/>
+          <input type="text" className="keyboard" ref={this.setKeyboard}/>
           {!!error && (
             <div className="error">{error}</div>
           )}

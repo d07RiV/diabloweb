@@ -1160,7 +1160,7 @@ try {
 }
 
 var TOTAL_STACK = Module['TOTAL_STACK'] || 5242880;
-var TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 134217728;
+var TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 268435456;
 if (TOTAL_MEMORY < TOTAL_STACK) err('TOTAL_MEMORY should be larger than TOTAL_STACK, was ' + TOTAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
 
 // Initialize the runtime's memory
@@ -1687,24 +1687,25 @@ integrateWasmJS();
 
 var ASM_CONSTS = [];
 
-function _api_close_keyboard(){ window.DApi.close_keyboard(); }
-function _api_create_sound(ptr,samples,channels,rate){ return window.DApi.create_sound(HEAPF32.subarray(ptr / 4, ptr / 4 + samples * channels), samples, channels, rate); }
-function _api_delete_sound(id){ return window.DApi.delete_sound(id); }
-function _api_duplicate_sound(id){ return window.DApi.duplicate_sound(id); }
-function _api_open_keyboard(){ window.DApi.open_keyboard(); }
-function _api_play_sound(id,volume,pan,loop){ return window.DApi.play_sound(id, volume, pan, loop); }
-function _api_set_volume(id,volume){ return window.DApi.set_volume(id, volume); }
-function _api_stop_sound(id){ return window.DApi.stop_sound(id); }
-function _do_SetCursorPos(x,y){ window.DApi.set_cursor(x, y); }
-function _do_draw_clip_text(x0,y0,x1,y1){ window.DApi.draw_clip_text(x0, y0, x1, y1); }
-function _do_draw_flush(){ window.DApi.draw_flush(); }
-function _do_draw_text(x,y,ptr,color){ var end = HEAPU8.indexOf(0, ptr); var text = String.fromCharCode.apply(null, HEAPU8.subarray(ptr, end)); window.DApi.draw_text(x, y, text, color); }
-function _do_draw_unlock(ptr,size){ window.DApi.draw_unlock(HEAPU8.subarray(ptr, ptr + size)); }
+function _api_close_keyboard(){ self.DApi.close_keyboard(); }
+function _api_create_sound(id,ptr,samples,channels,rate){ self.DApi.create_sound(id, HEAPF32.slice(ptr / 4, ptr / 4 + samples * channels), samples, channels, rate); }
+function _api_delete_sound(id){ self.DApi.delete_sound(id); }
+function _api_draw_begin(){ self.DApi.draw_begin(); }
+function _api_draw_blit(x,y,w,h,ptr){ self.DApi.draw_blit(x, y, w, h, HEAPU8.subarray(ptr, ptr + w * h * 4)); }
+function _api_draw_clip_text(x0,y0,x1,y1){ self.DApi.draw_clip_text(x0, y0, x1, y1); }
+function _api_draw_end(){ self.DApi.draw_end(); }
+function _api_draw_text(x,y,ptr,color){ var end = HEAPU8.indexOf(0, ptr); var text = String.fromCharCode.apply(null, HEAPU8.subarray(ptr, end)); self.DApi.draw_text(x, y, text, color); }
+function _api_duplicate_sound(id,srcId){ self.DApi.duplicate_sound(id, srcId); }
+function _api_open_keyboard(){ self.DApi.open_keyboard(); }
+function _api_play_sound(id,volume,pan,loop){ self.DApi.play_sound(id, volume, pan, loop); }
+function _api_set_cursor(x,y){ self.DApi.set_cursor(x, y); }
+function _api_set_volume(id,volume){ self.DApi.set_volume(id, volume); }
+function _api_stop_sound(id){ self.DApi.stop_sound(id); }
 function _exit_error(err){ var end = HEAPU8.indexOf( 0, err ); var text = String.fromCharCode.apply(null, HEAPU8.subarray( err, end )); window.DApi.exit_error( text ); }
-function _get_file_contents(path,ptr,offset,size){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); window.DApi.get_file_contents(text, HEAPU8.subarray(ptr, ptr + size), offset); }
-function _get_file_size(path){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); return window.DApi.get_file_size(text); }
-function _put_file_contents(path,ptr,size){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); window.DApi.put_file_contents(text, HEAPU8.slice(ptr, ptr + size)); }
-function _remove_file(path){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); window.DApi.remove_file( text ); }
+function _get_file_contents(path,ptr,offset,size){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); self.DApi.get_file_contents(text, HEAPU8.subarray(ptr, ptr + size), offset); }
+function _get_file_size(path){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); return self.DApi.get_file_size(text); }
+function _put_file_contents(path,ptr,size){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end)); self.DApi.put_file_contents(text, HEAPU8.slice(ptr, ptr + size)); }
+function _remove_file(path){ var end = HEAPU8.indexOf( 0, path); var text = String.fromCharCode.apply(null, HEAPU8.subarray(path, end )); self.DApi.remove_file( text ); }
 function _show_alert(err){ var end = HEAPU8.indexOf( 0, err ); var text = String.fromCharCode.apply( null, HEAPU8.subarray( err, end ) ); window.alert( text ); }
 function _trace_pop(){ if (window.WASM_TRACE) { window.WASM_TRACE.pop(); } }
 function _trace_push(ptr){ var end = HEAPU8.indexOf(0, ptr); var text = String.fromCharCode.apply(null, HEAPU8.subarray(ptr, end)); console.log(text); window.WASM_TRACE = window.WASM_TRACE || []; window.WASM_TRACE.push(text); }
@@ -2137,9 +2138,9 @@ function intArrayToString(array) {
 
 
 
-Module['wasmTableSize'] = 636;
+Module['wasmTableSize'] = 644;
 
-Module['wasmMaxTableSize'] = 636;
+Module['wasmMaxTableSize'] = 644;
 
 function invoke_fi(index,a1) {
   var sp = stackSave();
@@ -2341,7 +2342,7 @@ function invoke_viji(index,a1,a2,a3,a4) {
 
 Module.asmGlobalArg = {};
 
-Module.asmLibraryArg = { "abort": abort, "assert": assert, "enlargeMemory": enlargeMemory, "getTotalMemory": getTotalMemory, "abortOnCannotGrowMemory": abortOnCannotGrowMemory, "invoke_fi": invoke_fi, "invoke_i": invoke_i, "invoke_ii": invoke_ii, "invoke_iii": invoke_iii, "invoke_iiii": invoke_iiii, "invoke_iiiii": invoke_iiiii, "invoke_iiiiii": invoke_iiiiii, "invoke_ji": invoke_ji, "invoke_v": invoke_v, "invoke_vi": invoke_vi, "invoke_vii": invoke_vii, "invoke_viii": invoke_viii, "invoke_viiii": invoke_viiii, "invoke_viiiii": invoke_viiiii, "invoke_viiiiii": invoke_viiiiii, "invoke_viiiiiiiii": invoke_viiiiiiiii, "invoke_viiiiiiiiii": invoke_viiiiiiiiii, "invoke_viji": invoke_viji, "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv, "___assert_fail": ___assert_fail, "___cxa_allocate_exception": ___cxa_allocate_exception, "___cxa_begin_catch": ___cxa_begin_catch, "___cxa_end_catch": ___cxa_end_catch, "___cxa_find_matching_catch": ___cxa_find_matching_catch, "___cxa_find_matching_catch_2": ___cxa_find_matching_catch_2, "___cxa_find_matching_catch_3": ___cxa_find_matching_catch_3, "___cxa_free_exception": ___cxa_free_exception, "___cxa_pure_virtual": ___cxa_pure_virtual, "___cxa_throw": ___cxa_throw, "___gxx_personality_v0": ___gxx_personality_v0, "___lock": ___lock, "___resumeException": ___resumeException, "___setErrNo": ___setErrNo, "___syscall140": ___syscall140, "___syscall146": ___syscall146, "___syscall54": ___syscall54, "___syscall6": ___syscall6, "___unlock": ___unlock, "__exit": __exit, "_abort": _abort, "_api_close_keyboard": _api_close_keyboard, "_api_create_sound": _api_create_sound, "_api_delete_sound": _api_delete_sound, "_api_duplicate_sound": _api_duplicate_sound, "_api_open_keyboard": _api_open_keyboard, "_api_play_sound": _api_play_sound, "_api_set_volume": _api_set_volume, "_api_stop_sound": _api_stop_sound, "_do_SetCursorPos": _do_SetCursorPos, "_do_draw_clip_text": _do_draw_clip_text, "_do_draw_flush": _do_draw_flush, "_do_draw_text": _do_draw_text, "_do_draw_unlock": _do_draw_unlock, "_emscripten_memcpy_big": _emscripten_memcpy_big, "_exit": _exit, "_exit_error": _exit_error, "_get_file_contents": _get_file_contents, "_get_file_size": _get_file_size, "_llvm_ceil_f32": _llvm_ceil_f32, "_llvm_trap": _llvm_trap, "_pthread_getspecific": _pthread_getspecific, "_pthread_key_create": _pthread_key_create, "_pthread_once": _pthread_once, "_pthread_setspecific": _pthread_setspecific, "_put_file_contents": _put_file_contents, "_remove_file": _remove_file, "_show_alert": _show_alert, "_time": _time, "_trace_pop": _trace_pop, "_trace_push": _trace_push, "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM, "DYNAMICTOP_PTR": DYNAMICTOP_PTR, "tempDoublePtr": tempDoublePtr, "ABORT": ABORT, "STACKTOP": STACKTOP, "STACK_MAX": STACK_MAX };
+Module.asmLibraryArg = { "abort": abort, "assert": assert, "enlargeMemory": enlargeMemory, "getTotalMemory": getTotalMemory, "abortOnCannotGrowMemory": abortOnCannotGrowMemory, "invoke_fi": invoke_fi, "invoke_i": invoke_i, "invoke_ii": invoke_ii, "invoke_iii": invoke_iii, "invoke_iiii": invoke_iiii, "invoke_iiiii": invoke_iiiii, "invoke_iiiiii": invoke_iiiiii, "invoke_ji": invoke_ji, "invoke_v": invoke_v, "invoke_vi": invoke_vi, "invoke_vii": invoke_vii, "invoke_viii": invoke_viii, "invoke_viiii": invoke_viiii, "invoke_viiiii": invoke_viiiii, "invoke_viiiiii": invoke_viiiiii, "invoke_viiiiiiiii": invoke_viiiiiiiii, "invoke_viiiiiiiiii": invoke_viiiiiiiiii, "invoke_viji": invoke_viji, "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv, "___assert_fail": ___assert_fail, "___cxa_allocate_exception": ___cxa_allocate_exception, "___cxa_begin_catch": ___cxa_begin_catch, "___cxa_end_catch": ___cxa_end_catch, "___cxa_find_matching_catch": ___cxa_find_matching_catch, "___cxa_find_matching_catch_2": ___cxa_find_matching_catch_2, "___cxa_find_matching_catch_3": ___cxa_find_matching_catch_3, "___cxa_free_exception": ___cxa_free_exception, "___cxa_pure_virtual": ___cxa_pure_virtual, "___cxa_throw": ___cxa_throw, "___gxx_personality_v0": ___gxx_personality_v0, "___lock": ___lock, "___resumeException": ___resumeException, "___setErrNo": ___setErrNo, "___syscall140": ___syscall140, "___syscall146": ___syscall146, "___syscall54": ___syscall54, "___syscall6": ___syscall6, "___unlock": ___unlock, "__exit": __exit, "_abort": _abort, "_api_close_keyboard": _api_close_keyboard, "_api_create_sound": _api_create_sound, "_api_delete_sound": _api_delete_sound, "_api_draw_begin": _api_draw_begin, "_api_draw_blit": _api_draw_blit, "_api_draw_clip_text": _api_draw_clip_text, "_api_draw_end": _api_draw_end, "_api_draw_text": _api_draw_text, "_api_duplicate_sound": _api_duplicate_sound, "_api_open_keyboard": _api_open_keyboard, "_api_play_sound": _api_play_sound, "_api_set_cursor": _api_set_cursor, "_api_set_volume": _api_set_volume, "_api_stop_sound": _api_stop_sound, "_emscripten_memcpy_big": _emscripten_memcpy_big, "_exit": _exit, "_exit_error": _exit_error, "_get_file_contents": _get_file_contents, "_get_file_size": _get_file_size, "_llvm_ceil_f32": _llvm_ceil_f32, "_llvm_trap": _llvm_trap, "_pthread_getspecific": _pthread_getspecific, "_pthread_key_create": _pthread_key_create, "_pthread_once": _pthread_once, "_pthread_setspecific": _pthread_setspecific, "_put_file_contents": _put_file_contents, "_remove_file": _remove_file, "_show_alert": _show_alert, "_time": _time, "_trace_pop": _trace_pop, "_trace_push": _trace_push, "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM, "DYNAMICTOP_PTR": DYNAMICTOP_PTR, "tempDoublePtr": tempDoublePtr, "ABORT": ABORT, "STACKTOP": STACKTOP, "STACK_MAX": STACK_MAX };
 // EMSCRIPTEN_START_ASM
 var asm =Module["asm"]// EMSCRIPTEN_END_ASM
 (Module.asmGlobalArg, Module.asmLibraryArg, buffer);
@@ -2359,16 +2360,17 @@ var ___cxa_is_pointer_type = Module["___cxa_is_pointer_type"] = function() {  re
 var ___em_js__api_close_keyboard = Module["___em_js__api_close_keyboard"] = function() {  return Module["asm"]["___em_js__api_close_keyboard"].apply(null, arguments) };
 var ___em_js__api_create_sound = Module["___em_js__api_create_sound"] = function() {  return Module["asm"]["___em_js__api_create_sound"].apply(null, arguments) };
 var ___em_js__api_delete_sound = Module["___em_js__api_delete_sound"] = function() {  return Module["asm"]["___em_js__api_delete_sound"].apply(null, arguments) };
+var ___em_js__api_draw_begin = Module["___em_js__api_draw_begin"] = function() {  return Module["asm"]["___em_js__api_draw_begin"].apply(null, arguments) };
+var ___em_js__api_draw_blit = Module["___em_js__api_draw_blit"] = function() {  return Module["asm"]["___em_js__api_draw_blit"].apply(null, arguments) };
+var ___em_js__api_draw_clip_text = Module["___em_js__api_draw_clip_text"] = function() {  return Module["asm"]["___em_js__api_draw_clip_text"].apply(null, arguments) };
+var ___em_js__api_draw_end = Module["___em_js__api_draw_end"] = function() {  return Module["asm"]["___em_js__api_draw_end"].apply(null, arguments) };
+var ___em_js__api_draw_text = Module["___em_js__api_draw_text"] = function() {  return Module["asm"]["___em_js__api_draw_text"].apply(null, arguments) };
 var ___em_js__api_duplicate_sound = Module["___em_js__api_duplicate_sound"] = function() {  return Module["asm"]["___em_js__api_duplicate_sound"].apply(null, arguments) };
 var ___em_js__api_open_keyboard = Module["___em_js__api_open_keyboard"] = function() {  return Module["asm"]["___em_js__api_open_keyboard"].apply(null, arguments) };
 var ___em_js__api_play_sound = Module["___em_js__api_play_sound"] = function() {  return Module["asm"]["___em_js__api_play_sound"].apply(null, arguments) };
+var ___em_js__api_set_cursor = Module["___em_js__api_set_cursor"] = function() {  return Module["asm"]["___em_js__api_set_cursor"].apply(null, arguments) };
 var ___em_js__api_set_volume = Module["___em_js__api_set_volume"] = function() {  return Module["asm"]["___em_js__api_set_volume"].apply(null, arguments) };
 var ___em_js__api_stop_sound = Module["___em_js__api_stop_sound"] = function() {  return Module["asm"]["___em_js__api_stop_sound"].apply(null, arguments) };
-var ___em_js__do_SetCursorPos = Module["___em_js__do_SetCursorPos"] = function() {  return Module["asm"]["___em_js__do_SetCursorPos"].apply(null, arguments) };
-var ___em_js__do_draw_clip_text = Module["___em_js__do_draw_clip_text"] = function() {  return Module["asm"]["___em_js__do_draw_clip_text"].apply(null, arguments) };
-var ___em_js__do_draw_flush = Module["___em_js__do_draw_flush"] = function() {  return Module["asm"]["___em_js__do_draw_flush"].apply(null, arguments) };
-var ___em_js__do_draw_text = Module["___em_js__do_draw_text"] = function() {  return Module["asm"]["___em_js__do_draw_text"].apply(null, arguments) };
-var ___em_js__do_draw_unlock = Module["___em_js__do_draw_unlock"] = function() {  return Module["asm"]["___em_js__do_draw_unlock"].apply(null, arguments) };
 var ___em_js__exit_error = Module["___em_js__exit_error"] = function() {  return Module["asm"]["___em_js__exit_error"].apply(null, arguments) };
 var ___em_js__get_file_contents = Module["___em_js__get_file_contents"] = function() {  return Module["asm"]["___em_js__get_file_contents"].apply(null, arguments) };
 var ___em_js__get_file_size = Module["___em_js__get_file_size"] = function() {  return Module["asm"]["___em_js__get_file_size"].apply(null, arguments) };
