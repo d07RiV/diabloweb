@@ -147,7 +147,9 @@ class App extends React.Component {
       document.addEventListener('keyup', this.onKeyUp, true);
       document.addEventListener('contextmenu', this.onMenu, true);
 
-      document.addEventListener('touchstart', this.onTouchStart, true);
+      document.addEventListener('touchstart', this.onTouchStart, {passive: false, capture: true});
+      document.addEventListener('touchmove', this.onTouchStart, {passive: false, capture: true});
+      document.addEventListener('touchend', this.onTouchStart, {passive: false, capture: true});
 
       document.addEventListener('pointerlockchange', this.onPointerLockChange);
       window.addEventListener('resize', this.onResize);
@@ -200,10 +202,6 @@ class App extends React.Component {
     }
   }
 
-  onTouchStart = e => {
-    this.touchEvent = true;
-  }
-
   onMouseMove = e => {
     if (!this.canvas) return;
     const {x, y} = this.mousePos(e);
@@ -214,11 +212,7 @@ class App extends React.Component {
   onMouseDown = e => {
     if (!this.canvas) return;
     const {x, y} = this.mousePos(e);
-    if (this.touchEvent) {
-      this.element.requestFullscreen();
-      this.touchEvent = false;
-      this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
-    } else if (window.screen && window.innerHeight === window.screen.height) {
+    if (window.screen && window.innerHeight === window.screen.height) {
       // we're in fullscreen, let's get pointer lock!
       if (!this.pointerLocked()) {
         this.canvas.requestPointerLock();
@@ -262,14 +256,34 @@ class App extends React.Component {
     }
   }
 
+  onTouchStart = e => {
+    if (!this.canvas || !e.touches.length) return;
+    e.preventDefault();
+    this.element.requestFullscreen();
+    const {x, y} = this.mousePos(e.touches[0]);
+    this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
+    this.game("DApi_Mouse", 1, 0, this.eventMods(e), x, y);
+  }
+  onTouchMove = e => {
+    if (!this.canvas || !e.touches.length) return;
+    e.preventDefault();
+  }
+  onTouchEnd = e => {
+    if (!this.canvas) return;
+    e.preventDefault();
+  }
+
   setCanvas = e => this.canvas = e;
   setElement = e => this.element = e;
   setKeyboard = e => this.keyboard = e;
+  setTouchMove = e => this.touchMove = e;
+  setTouchRmb = e => this.touchRmb = e;
+  setTouchShift = e => this.touchShift = e;
 
   render() {
     const {started, loading, error, progress, dropping} = this.state;
     return (
-      <div className={"App" + (started ? " started" : "") + (dropping ? " dropping" : "")} ref={this.setElement}>
+      <div className={"App touch " + (started ? " started" : "") + (dropping ? " dropping" : "")} ref={this.setElement}>
         <div className="Body">
           {!error && (
             <canvas ref={this.setCanvas} width={640} height={480}/>
@@ -305,6 +319,14 @@ class App extends React.Component {
               <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
             </div>
           )}
+        </div>
+        <div className="touch-ui">
+          <div className="touch-button touch-button-1" ref={this.touchMove}>
+          </div>
+          <div className="touch-button touch-button-2" ref={this.touchRmb}>
+          </div>
+          <div className="touch-button touch-button-3" ref={this.touchShift}>
+          </div>
         </div>
       </div>
     );

@@ -115,6 +115,7 @@ function call_api(func, ...params) {
 
 async function init_game(mpq) {
   if (mpq) {
+    /* eslint-disable-next-line no-undef */
     const reader = new FileReaderSync();
     const data = reader.readAsArrayBuffer(mpq);
     files.set('diabdat.mpq', new Uint8Array(data));

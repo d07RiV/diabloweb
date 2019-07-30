@@ -141,3 +141,78 @@ body, #root, .App {
     cursor: pointer;
   }
 }
+
+.App {
+  .touch-ui {
+    display: none;
+  }
+  &.touch .touch-ui {
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 25vh;
+    .touch-button {
+      position: absolute;
+      left: 50%;
+      width: 20vh;
+      height: 20vh;
+      border-radius: 10vh;
+      background-color: #888;
+      transform: translate(-50%, -50%);
+    }
+    .touch-button-1 {
+      top: 16.7vh;
+    }
+    .touch-button-2 {
+      top: 50vh;
+    }
+    .touch-button-3 {
+      top: 83.3vh;
+    }
+  }
+}
+@media (max-aspect-ratio: 880/480) {
+  .App.touch .touch-ui {
+    width: calc(50vw - 200vh / 3);
+  }
+}
+@media (max-aspect-ratio: 832/480) {
+  .App.touch .touch-ui {
+    width: 20vh;
+  }
+}
+@media (max-aspect-ratio: 640/480) {
+  .App.touch .touch-ui {
+    top: auto;
+    width: auto;
+    right: 0;
+    height: 20vw;
+    .touch-button {
+      top: 50%;
+      width: 20vw;
+      height: 20vw;
+      border-radius: 10vw;
+    }
+    .touch-button-1 {
+      left: 16.7vw;
+    }
+    .touch-button-2 {
+      left: 50vw;
+    }
+    .touch-button-3 {
+      left: 83.3vw;
+    }
+  }
+}
+@media (max-aspect-ratio: 640/736) {
+  .App.touch .touch-ui {
+    height: calc(50vh - 75vw / 2);
+  }
+}
+@media (max-aspect-ratio: 640/800) {
+  .App.touch .touch-ui {
+    height: 25vw;
+  }
+}
