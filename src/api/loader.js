@@ -2,12 +2,63 @@ import Worker from './game.worker.js';
 import init_sound from './sound';
 import load_spawn from './load_spawn';
 
+function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
+  if (bitmap) {
+    ctx.transferFromImageBitmap(bitmap);
+  } else {
+    for (let {x, y, w, h, data} of images) {
+      const image = ctx.createImageData(w, h);
+      image.data.set(data);
+      ctx.putImageData(image, x, y);
+    }
+    if (text.length) {
+      ctx.save();
+      ctx.font = 'bold 13px Times New Roman';
+      if (clip) {
+        const {x0, y0, x1, y1} = clip;
+        ctx.beginPath();
+        ctx.rect(x0, y0, x1 - x0, y1 - y0);
+        ctx.clip();
+      }
+      for (let {x, y, text: str, color} of text) {
+        const r = ((color >> 16) & 0xFF);
+        const g = ((color >> 8) & 0xFF);
+        const b = (color & 0xFF);
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillText(str, x, y + 22);
+      }
+      ctx.restore();
+    }
+  }
+
+  api.updateBelt(belt);
+}
+
+function testOffscreen() {
+  try {
+    const canvas = document.createElement("canvas");
+    const offscreen = canvas.transferControlToOffscreen();
+    const context = offscreen.getContext("2d");
+    return context != null;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function do_load_game(api, audio, mpq) {
   const fs = await api.fs;
   if (mpq) {
     fs.files.delete('spawn.mpq');
   } else {
     await load_spawn(api, fs);
+  }
+
+  let context = null, offscreen = false;
+  if (testOffscreen()) {
+    context = api.canvas.getContext("bitmaprenderer");
+    offscreen = true;
+  } else {
+    context = api.canvas.getContext("2d", {alpha: false});
   }
   return await new Promise((resolve, reject) => {
     try {
@@ -18,7 +69,7 @@ async function do_load_game(api, audio, mpq) {
           resolve((func, ...params) => worker.postMessage({action: "event", func, params}));
           break;
         case "render":
-          api.onRender(data.batch);
+          onRender(api, context, data.batch);
           break;
         case "audio":
           audio[data.func](...data.params);
@@ -46,7 +97,11 @@ async function do_load_game(api, audio, mpq) {
         default:
         }
       });
-      worker.postMessage({action: "init", files: fs.files, mpq});
+      const transfer= [];
+      for (let [name, file] of fs.files) {
+        transfer.push(file.buffer);
+      }
+      worker.postMessage({action: "init", files: fs.files, mpq, offscreen}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);

@@ -129,36 +129,7 @@ class App extends React.Component {
     }
   }
 
-  onRender({images, text, clip, belt}) {
-    const ctx = this.renderer;
-    if (!ctx) {
-      return;
-    }
-    for (let {x, y, w, h, image, data} of images) {
-      if (!image) {
-        image = ctx.createImageData(w, h);
-        image.data.set(data);
-      }
-      ctx.putImageData(image, x, y);
-    }
-    if (text.length) {
-      ctx.save();
-      ctx.font = 'bold 13px Times New Roman';
-      if (clip) {
-        const {x0, y0, x1, y1} = clip;
-        ctx.beginPath();
-        ctx.rect(x0, y0, x1 - x0, y1 - y0);
-        ctx.clip();
-      }
-      for (let {x, y, text: str, color} of text) {
-        const r = ((color >> 16) & 0xFF);
-        const g = ((color >> 8) & 0xFF);
-        const b = (color & 0xFF);
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.fillText(str, x, y + 22);
-      }
-      ctx.restore();
-    }
+  updateBelt(belt) {
     if (belt) {
       const used = new Set();
       let pos = 3;
@@ -185,7 +156,6 @@ class App extends React.Component {
     document.removeEventListener("dragleave", this.onDragLeave, true);
     this.setState({dropping: 0});
 
-    this.renderer = this.canvas.getContext("2d", {alpha: false});
     this.setState({loading: true});
 
     load_game(this, file).then(game => {
