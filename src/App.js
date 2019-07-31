@@ -1,5 +1,6 @@
 import React from 'react';
 import './App.scss';
+import classNames from 'classnames';
 
 import create_fs from './fs';
 import load_game from './api/loader';
@@ -28,14 +29,34 @@ function getDropFile(e) {
   }
 }
 
+const TOUCH_MOVE = 0;
+const TOUCH_RMB = 1;
+const TOUCH_SHIFT = 2;
+
 const Link = ({children, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
 
 class App extends React.Component {
   files = new Map();
-  state = {started: false, loading: false, dropping: 0};
+  state = {started: false, loading: false, touch: false, dropping: 0};
   cursorPos = {x: 0, y: 0};
 
+  touchButtons = [null, null, null, null, null, null];
+  touchCtx = [null, null, null, null, null, null];
+  touchMods = [false, false, false, false, false, false];
+  touchBelt = [-1, -1, -1, -1, -1, -1];
+
   fs = create_fs(this);
+
+  constructor(props) {
+    super(props);
+
+    this.setTouch0 = this.setTouch_.bind(this, 0);
+    this.setTouch1 = this.setTouch_.bind(this, 1);
+    this.setTouch2 = this.setTouch_.bind(this, 2);
+    this.setTouch3 = this.setTouchBelt_.bind(this, 3);
+    this.setTouch4 = this.setTouchBelt_.bind(this, 4);
+    this.setTouch5 = this.setTouchBelt_.bind(this, 5);
+  }
 
   componentDidMount() {
     document.addEventListener("drop", this.onDrop, true);
@@ -95,7 +116,20 @@ class App extends React.Component {
     this.setState({progress: loaded / total});
   }
 
-  onRender({images, text, clip}) {
+  drawBelt(idx, slot) {
+    if (!this.touchButtons[idx]) {
+      return;
+    }
+    this.touchBelt[idx] = slot;
+    if (slot >= 0) {
+      this.touchButtons[idx].style.display = "block";
+      this.touchCtx[idx].drawImage(this.canvas, 205 + 29 * slot, 357, 28, 28, 0, 0, 28, 28);
+    } else {
+      this.touchButtons[idx].style.display = "none";
+    }
+  }
+
+  onRender({images, text, clip, belt}) {
     const ctx = this.renderer;
     if (!ctx) {
       return;
@@ -125,6 +159,23 @@ class App extends React.Component {
       }
       ctx.restore();
     }
+    if (belt) {
+      const used = new Set();
+      let pos = 3;
+      for (let i = 0; i < belt.length && pos < 6; ++i) {
+        if (belt[i] >= 0 && !used.has(belt[i])) {
+          this.drawBelt(pos++, i);
+          used.add(belt[i]);
+        }
+      }
+      for (; pos < 6; ++pos) {
+        this.drawBelt(pos, -1);
+      }
+    } else {
+      this.drawBelt(3, -1);
+      this.drawBelt(4, -1);
+      this.drawBelt(5, -1);
+    }
   }
 
   start(file) {
@@ -148,10 +199,11 @@ class App extends React.Component {
       document.addEventListener('contextmenu', this.onMenu, true);
 
       document.addEventListener('touchstart', this.onTouchStart, {passive: false, capture: true});
-      document.addEventListener('touchmove', this.onTouchStart, {passive: false, capture: true});
-      document.addEventListener('touchend', this.onTouchStart, {passive: false, capture: true});
+      document.addEventListener('touchmove', this.onTouchMove, {passive: false, capture: true});
+      document.addEventListener('touchend', this.onTouchEnd, {passive: false, capture: true});
 
       document.addEventListener('pointerlockchange', this.onPointerLockChange);
+      document.addEventListener('fullscreenchange', this.onFullscreenChange);
       window.addEventListener('resize', this.onResize);
 
       this.setState({started: true});
@@ -187,7 +239,7 @@ class App extends React.Component {
     }
   }
   eventMods(e) {
-    return (e.shiftKey ? 1 : 0) + (e.ctrlKey ? 2 : 0) + (e.altKey ? 4 : 0);
+    return ((e.shiftKey || this.touchMods[TOUCH_SHIFT]) ? 1 : 0) + (e.ctrlKey ? 2 : 0) + (e.altKey ? 4 : 0) + (e.touches ? 8 : 0);
   }
 
   onResize = () => {
@@ -256,34 +308,165 @@ class App extends React.Component {
     }
   }
 
+  touchButton = null;
+  touchCanvas = null;
+
+  onFullscreenChange = () => {
+    this.setState({touch: (document.fullscreenElement === this.element)});
+  }
+
+  setTouchMod(index, value, use) {
+    if (index < 3) {
+      this.touchMods[index] = value;
+      if (this.touchButtons[index]) {
+        this.touchButtons[index].classList.toggle("active", value);
+      }
+    } else if (use && this.touchBelt[index] >= 0) {
+      const now = performance.now();
+      if (!this.beltTime || now - this.beltTime > 750) {
+        this.game("DApi_Char", 49 + this.touchBelt[index]);
+        this.beltTime = now;
+      }
+    }
+  }
+
+  updateTouchButton(touches, release) {
+    let touchOther = null;
+    const btn = this.touchButton;
+    for (let {target, identifier, clientX, clientY} of touches) {
+      if (btn && btn.id === identifier && this.touchButtons[btn.index] === target) {
+        if (touches.length > 1) {
+          btn.stick = false;
+        }
+        btn.clientX = clientX;
+        btn.clientY = clientY;
+        this.touchCanvas = [...touches].find(t => t.identifier !== identifier);
+        if (this.touchCanvas) {
+          this.touchCanvas = {clientX: this.touchCanvas.clientX, clientY: this.touchCanvas.clientY};
+        }
+        delete this.panPos;
+        return this.touchCanvas != null;
+      }
+      const idx = this.touchButtons.indexOf(target);
+      if (idx >= 0 && !touchOther) {
+        touchOther = {id: identifier, index: idx, stick: true, original: this.touchMods[idx], clientX, clientY};
+      }
+    }
+    if (btn && !touchOther && release && btn.stick) {
+      const rect = this.touchButtons[btn.index].getBoundingClientRect();
+      const {clientX, clientY} = btn;
+      if (clientX >= rect.left && clientX < rect.right && clientY >= rect.top && clientY < rect.bottom) {
+        this.setTouchMod(btn.index, !btn.original, true);
+      } else {
+        this.setTouchMod(btn.index, btn.original);
+      }
+    } else if (btn) {
+      this.setTouchMod(btn.index, false);
+    }
+    this.touchButton = touchOther;
+    if (touchOther) {
+      this.setTouchMod(touchOther.index, true);
+      delete this.panPos;
+    } else if (touches.length === 2) {
+      const x = (touches[1].clientX + touches[0].clientX) / 2, y = (touches[1].clientY + touches[0].clientY) / 2;
+      if (this.panPos) {
+        const dx = x - this.panPos.x, dy = y - this.panPos.y;
+        const step = this.canvas.offsetHeight / 12;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) > step) {
+          let key;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            key = (dx > 0 ? 0x25 : 0x27);
+          } else {
+            key = (dy > 0 ? 0x26 : 0x28);
+          }
+          this.game("DApi_Key", 0, 0, key);
+          // key up is ignored anyway
+          this.panPos = {x, y};
+        }
+      } else {
+        this.game("DApi_Mouse", 0, 0, 24, 320, 180);
+        this.game("DApi_Mouse", 2, 1, 24, 320, 180);
+        this.panPos = {x, y};
+      }
+      this.touchCanvas = null;
+      return false;
+    } else {
+      delete this.panPos;
+    }
+    this.touchCanvas = [...touches].find(t => !touchOther || t.identifier !== touchOther.id);
+    if (this.touchCanvas) {
+      this.touchCanvas = {clientX: this.touchCanvas.clientX, clientY: this.touchCanvas.clientY};
+    }
+    return this.touchCanvas != null;
+  }
+
   onTouchStart = e => {
-    if (!this.canvas || !e.touches.length) return;
+    if (!this.canvas) return;
     e.preventDefault();
-    this.element.requestFullscreen();
-    const {x, y} = this.mousePos(e.touches[0]);
-    this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
-    this.game("DApi_Mouse", 1, 0, this.eventMods(e), x, y);
+    if (this.updateTouchButton(e.touches, false)) {
+      const {x, y} = this.mousePos(this.touchCanvas);
+      this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
+      if (!this.touchMods[TOUCH_MOVE]) {
+        this.game("DApi_Mouse", 1, this.touchMods[TOUCH_RMB] ? 2 : 1, this.eventMods(e), x, y);
+      }
+    }
   }
   onTouchMove = e => {
-    if (!this.canvas || !e.touches.length) return;
+    if (!this.canvas) return;
     e.preventDefault();
+    if (this.updateTouchButton(e.touches, false)) {
+      const {x, y} = this.mousePos(this.touchCanvas);
+      this.game("DApi_Mouse", 0, 0, this.eventMods(e), x, y);
+    }
   }
   onTouchEnd = e => {
     if (!this.canvas) return;
     e.preventDefault();
+    const prevTc = this.touchCanvas;
+    this.updateTouchButton(e.touches, true);
+    if (prevTc && !this.touchCanvas) {
+      const {x, y} = this.mousePos(prevTc);
+      this.game("DApi_Mouse", 2, 1, this.eventMods(e), x, y);
+      this.game("DApi_Mouse", 2, 2, this.eventMods(e), x, y);
+    }
+    if (!document.fullscreenElement) {
+      this.element.requestFullscreen();
+    }
   }
 
   setCanvas = e => this.canvas = e;
   setElement = e => this.element = e;
   setKeyboard = e => this.keyboard = e;
-  setTouchMove = e => this.touchMove = e;
-  setTouchRmb = e => this.touchRmb = e;
-  setTouchShift = e => this.touchShift = e;
+  setTouch_(i, e) {
+    this.touchButtons[i] = e;
+  }
+  setTouchBelt_(i, e) {
+    this.touchButtons[i] = e;
+    if (e) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 28;
+      canvas.height = 28;
+      e.appendChild(canvas);
+      this.touchCtx[i] = canvas.getContext("2d");
+    } else {
+      this.touchCtx[i] = null;
+    }
+  }
 
   render() {
-    const {started, loading, error, progress, dropping} = this.state;
+    const {started, loading, error, progress, dropping, touch} = this.state;
     return (
-      <div className={"App touch " + (started ? " started" : "") + (dropping ? " dropping" : "")} ref={this.setElement}>
+      <div className={classNames("App", {touch, started, dropping})} ref={this.setElement}>
+        <div className="touch-ui touch-mods">
+          <div className={classNames("touch-button", "touch-button-0", {active: this.touchMods[0]})} ref={this.setTouch0}/>
+          <div className={classNames("touch-button", "touch-button-1", {active: this.touchMods[1]})} ref={this.setTouch1}/>
+          <div className={classNames("touch-button", "touch-button-2", {active: this.touchMods[2]})} ref={this.setTouch2}/>
+        </div>
+        <div className="touch-ui touch-belt">
+          <div className={classNames("touch-button", "touch-button-0")} ref={this.setTouch3}/>
+          <div className={classNames("touch-button", "touch-button-1")} ref={this.setTouch4}/>
+          <div className={classNames("touch-button", "touch-button-2")} ref={this.setTouch5}/>
+        </div>
         <div className="Body">
           {!error && (
             <canvas ref={this.setCanvas} width={640} height={480}/>
@@ -319,14 +502,6 @@ class App extends React.Component {
               <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
             </div>
           )}
-        </div>
-        <div className="touch-ui">
-          <div className="touch-button touch-button-1" ref={this.touchMove}>
-          </div>
-          <div className="touch-button touch-button-2" ref={this.touchRmb}>
-          </div>
-          <div className="touch-button touch-button-3" ref={this.touchShift}>
-          </div>
         </div>
       </div>
     );

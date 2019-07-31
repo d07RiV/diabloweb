@@ -8,6 +8,7 @@ const worker = self;
 
 let files = null;
 let renderBatch = null;
+let drawBelt = null;
 
 const DApi = {
   exit_error(error) {
@@ -18,8 +19,10 @@ const DApi = {
     renderBatch = {
       images: [],
       text: [],
-      clip: null
+      clip: null,
+      belt: drawBelt,
     };
+    drawBelt = null;
   },
   draw_blit(x, y, w, h, data) {
     if (ImageData.length) {
@@ -39,6 +42,9 @@ const DApi = {
   draw_end() {
     worker.postMessage({action: "render", batch: renderBatch});
     renderBatch = null;
+  },
+  draw_belt(items) {
+    drawBelt = items.slice();
   },
 
   get_file_size(path) {
