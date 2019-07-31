@@ -35,6 +35,7 @@ function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
 }
 
 function testOffscreen() {
+  return false;
   try {
     const canvas = document.createElement("canvas");
     const offscreen = canvas.transferControlToOffscreen();
