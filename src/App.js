@@ -4,6 +4,7 @@ import classNames from 'classnames';
 
 import create_fs from './fs';
 import load_game from './api/loader';
+import { SpawnSize } from './api/load_spawn';
 
 function isDropFile(e) {
   if (e.dataTransfer.items) {
@@ -37,7 +38,7 @@ const Link = ({children, ...props}) => <a target="_blank" rel="noopener noreferr
 
 class App extends React.Component {
   files = new Map();
-  state = {started: false, loading: false, touch: false, dropping: 0};
+  state = {started: false, loading: false, touch: false, dropping: 0, has_spawn: false};
   cursorPos = {x: 0, y: 0};
 
   touchButtons = [null, null, null, null, null, null];
@@ -63,6 +64,13 @@ class App extends React.Component {
     document.addEventListener("dragover", this.onDragOver, true);
     document.addEventListener("dragenter", this.onDragEnter, true);
     document.addEventListener("dragleave", this.onDragLeave, true);
+
+    this.fs.then(fs => {
+      const spawn = fs.files.get('spawn.mpq');
+      if (spawn && spawn.byteLength === SpawnSize) {
+        this.setState({has_spawn: true});
+      }
+    });
   }
 
   onDrop = e => {
@@ -112,8 +120,8 @@ class App extends React.Component {
     });
   }
 
-  onProgress({type, loaded, total}) {
-    this.setState({progress: loaded / total});
+  onProgress(progress) {
+    this.setState({progress});
   }
 
   drawBelt(idx, slot) {
@@ -424,7 +432,7 @@ class App extends React.Component {
   }
 
   render() {
-    const {started, loading, error, progress, dropping, touch} = this.state;
+    const {started, loading, error, progress, dropping, touch, has_spawn} = this.state;
     return (
       <div className={classNames("App", {touch, started, dropping})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
@@ -449,8 +457,10 @@ class App extends React.Component {
           )}
           {!!loading && !started && !error && (
             <div className="loading">
-              Loading...
-              {progress != null && <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress)}%`}}/></span></span>}
+              {progress && progress.text || 'Loading...'}
+              {progress != null && !!progress.total && (
+                <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress.loaded / progress.total)}%`}}/></span></span>
+              )}
             </div>
           )}
           {!started && !loading && !error && (
@@ -466,10 +476,15 @@ class App extends React.Component {
                 </p>
                 <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
               </form>
-              <p>
-                Or you can download and play the shareware version instead (50MB download).
-              </p>
-              <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
+              {has_spawn ? (
+                <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
+              ) : (
+                <p>
+                  Or you can download and play the shareware version instead (50MB download). <i>The site has lately been under too much stress due to users downloading the shareware
+                  package, so instead you will need to <a href="https://d07riv.github.io/diabloweb/public/spawn.mpq">download it from GitHub</a>, then drop it on the page (or upload
+                  by <label htmlFor="loadFile" className="link" onClick={this.download}>clicking here</label>).</i>
+                </p>
+              )}
             </div>
           )}
         </div>

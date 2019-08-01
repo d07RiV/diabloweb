@@ -1,6 +1,8 @@
-import axios from 'axios';
+//import axios from 'axios';
 
 const SpawnSize = 50274091;
+
+export { SpawnSize };
 
 export default async function load_spawn(api, fs) {
   let file = fs.files.get('spawn.mpq');
@@ -10,7 +12,8 @@ export default async function load_spawn(api, fs) {
     file = null;
   }
   if (!file) {
-    const spawn = await axios.request({
+    throw Error("Invalid spawn.mpq size.");
+    /*const spawn = await axios.request({
       url: '/spawn.mpq',
       responseType: 'arraybuffer',
       onDownloadProgress: e => {
@@ -27,7 +30,7 @@ export default async function load_spawn(api, fs) {
     }
     const data = new Uint8Array(spawn.data);
     fs.files.set('spawn.mpq', data);
-    fs.update('spawn.mpq', data);
+    fs.update('spawn.mpq', data);*/
   }
   return fs;
 }

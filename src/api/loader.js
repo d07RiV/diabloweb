@@ -48,8 +48,12 @@ function testOffscreen() {
 
 async function do_load_game(api, audio, mpq) {
   const fs = await api.fs;
+  let spawn = true;
   if (mpq) {
-    fs.files.delete('spawn.mpq');
+    if (!mpq.name.match(/^spawn\.mpq$/i)) {
+      spawn = false;
+      fs.files.delete('spawn.mpq');
+    }
   } else {
     await load_spawn(api, fs);
   }
@@ -95,6 +99,9 @@ async function do_load_game(api, audio, mpq) {
         case "failed":
           reject(Error(data.error));
           break;
+        case "progress":
+          api.onProgress({text: data.text, loaded: data.loaded, total: data.total});
+          break;
         default:
         }
       });
@@ -102,7 +109,7 @@ async function do_load_game(api, audio, mpq) {
       for (let [name, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, offscreen}, transfer);
+      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);

@@ -2,11 +2,16 @@ import DiabloBinary from './Diablo.wasm';
 import DiabloModule from './Diablo.jscc';
 import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
+import axios from 'axios';
+
+const DiabloSize = 1288646;
+const SpawnSize = 1160666;
 
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
 let canvas = null, context = null;
+let imageData = null;
 let files = null;
 let renderBatch = null;
 let drawBelt = null;
@@ -51,6 +56,17 @@ const DApi = {
   },
 };
 
+let frameTime = 0, lastTime = 0;
+function getFPS() {
+  const time = performance.now();
+  if (!lastTime) {
+    lastTime = time;
+  }
+  frameTime = 0.9 * frameTime + 0.1 * (time - lastTime);
+  lastTime = time;
+  return frameTime ? 1000.0 / frameTime : 0.0;
+}
+
 const DApi_renderLegacy = {
   draw_begin() {
     renderBatch = {
@@ -71,6 +87,7 @@ const DApi_renderLegacy = {
     renderBatch.text.push({x, y, text, color});
   },
   draw_end() {
+    //DApi.draw_text(10, 10, `FPS: ${getFPS().toFixed(1)} (Transfer)`, 0xFFCC00);
     const transfer = renderBatch.images.map(({data}) => data.buffer);
     if (renderBatch.belt) {
       transfer.push(renderBatch.belt.buffer);
@@ -89,9 +106,8 @@ const DApi_renderOffscreen = {
     context.font = 'bold 13px Times New Roman';
   },
   draw_blit(x, y, w, h, data) {
-    const image = context.createImageData(w, h);
-    image.data.set(data);
-    context.putImageData(image, x, y);
+    imageData.data.set(data);
+    context.putImageData(imageData, x, y);
   },
   draw_clip_text(x0, y0, x1, y1) {
     context.beginPath();
@@ -106,6 +122,7 @@ const DApi_renderOffscreen = {
     context.fillText(text, x, y + 22);
   },
   draw_end() {
+    //DApi.draw_text(10, 10, `FPS: ${getFPS().toFixed(1)} (Offscreen)`, 0xFFCC00);
     context.restore();
     const bitmap = canvas.transferToImageBitmap();
     const transfer = [bitmap];
@@ -166,35 +183,69 @@ function call_api(func, ...params) {
   }
 }
 
-async function init_game(mpq, offscreen) {
-  if (mpq) {
-    /* eslint-disable-next-line no-undef */
-    const reader = new FileReaderSync();
-    const data = reader.readAsArrayBuffer(mpq);
-    files.set('diabdat.mpq', new Uint8Array(data));
-  }
+function progress(text, loaded, total) {
+  worker.postMessage({action: "progress", text, loaded, total});
+}
 
+const readFile = (file, progress) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    if (progress) {
+      progress({loaded: file.size});
+    }
+    resolve(reader.result);
+  },
+  reader.onerror = () => reject(reader.error);
+  reader.onabort = () => reject();
+  if (progress) {
+    reader.addEventListener("progress", progress);
+  }
+  reader.readAsArrayBuffer(file);
+});
+
+async function initWasm(spawn, progress) {
+  const binary = await axios.request({
+    url: spawn ? SpawnBinary : DiabloBinary,
+    responseType: 'arraybuffer',
+    onDownloadProgress: progress,
+  });
+  const result = await (spawn ? SpawnModule : DiabloModule)({wasmBinary: binary.data}).ready;
+  progress({loaded: 2000000});
+  return result;
+}
+
+async function init_game(mpq, spawn, offscreen) {
   if (offscreen) {
     canvas = new OffscreenCanvas(640, 480);
     context = canvas.getContext("2d");
+    imageData = context.createImageData(640, 480);
     Object.assign(DApi, DApi_renderOffscreen);
   } else {
     Object.assign(DApi, DApi_renderLegacy);
   }
 
-  wasm = await (mpq ? DiabloModule : SpawnModule)({
-    locateFile(name) {
-      if (name === 'DiabloSpawn.wasm') {
-        return SpawnBinary;
-      } else if (name === 'Diablo.wasm') {
-        return DiabloBinary;
-      } else {
-        return name;
-      }
-    }
-  }).ready;
+  progress("Loading...");
+  let mpqLoaded = 0, mpqTotal = (mpq ? mpq.size : 0), wasmLoaded = 0, wasmTotal = (spawn ? SpawnSize : DiabloSize);
+  const wasmWeight = 5;
+  function updateProgress() {
+    progress("Loading...", mpqLoaded + wasmLoaded * wasmWeight, mpqTotal + wasmTotal * wasmWeight);
+  }
+  const loadWasm = initWasm(spawn, e => {
+    wasmLoaded = Math.min(e.loaded, wasmTotal);
+    updateProgress();
+  });
+  let loadMpq = mpq ? readFile(mpq, e => {
+    mpqLoaded = e.loaded;
+    updateProgress();
+  }) : Promise.resolve(null);
+  [wasm, mpq] = await Promise.all([loadWasm, loadMpq]);
 
-  wasm._DApi_Init(Math.floor(performance.now()));
+  if (mpq) {
+    files.set(spawn ? 'spawn.mpq' : 'diabdat.mpq', new Uint8Array(mpq));
+  }
+
+  progress("Initializing...");
+  wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0);
 
   setInterval(() => {
     call_api("DApi_Render", Math.floor(performance.now()));  
@@ -205,7 +256,7 @@ worker.addEventListener("message", ({data}) => {
   switch (data.action) {
   case "init":
     files = data.files;
-    init_game(data.mpq, data.offscreen).then(
+    init_game(data.mpq, data.spawn, data.offscreen).then(
       () => worker.postMessage({action: "loaded"}),
       e => {debugger;worker.postMessage({action: "failed", error: e.message || e.name});});
     break;

@@ -105,12 +105,12 @@ body, #root, .App {
 
   .loading {
     color: #888;
-    font-size: 48px;
+    font-size: 32px;
     text-align: center;
     width: 75%;
     .progressBar {
       display: block;
-      position: relative;
+      position: absolute;
       margin-top: 16px;
       width: 100%;
       height: 40px;
