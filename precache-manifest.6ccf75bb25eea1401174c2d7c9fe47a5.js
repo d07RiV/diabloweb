@@ -4,24 +4,24 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/a452417be70a92d7cbdf.worker.js"
   },
   {
-    "revision": "9af6e05ee6933fc351b4a36564f443bf",
+    "revision": "18e039b4349d9898f2165f9913397ac5",
     "url": "/diabloweb/index.html"
   },
   {
-    "revision": "504b41b82eb473907ba7",
+    "revision": "e882ad5e8e75d1494e98",
     "url": "/diabloweb/static/css/main.9fcbefb1.chunk.css"
   },
   {
-    "revision": "5f219d23a149c1e30b2b",
-    "url": "/diabloweb/static/js/0.ded40b31.chunk.js"
+    "revision": "ca79f1aceb3e6044beee",
+    "url": "/diabloweb/static/js/0.3d665017.chunk.js"
   },
   {
-    "revision": "7e7de9aed3466d529c14",
-    "url": "/diabloweb/static/js/5.bb4b864b.chunk.js"
+    "revision": "b7315f06d2fba73ddeb5",
+    "url": "/diabloweb/static/js/5.2a4effa1.chunk.js"
   },
   {
-    "revision": "504b41b82eb473907ba7",
-    "url": "/diabloweb/static/js/main.5add5680.chunk.js"
+    "revision": "e882ad5e8e75d1494e98",
+    "url": "/diabloweb/static/js/main.025a19d1.chunk.js"
   },
   {
     "revision": "077fe45e700d7971de0b",
@@ -32,8 +32,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/runtime~storage.83a78cef.js"
   },
   {
-    "revision": "076e6ef6910c9d8cf67d",
-    "url": "/diabloweb/static/js/storage.447359e6.chunk.js"
+    "revision": "01c08c28ca92e2e424ab",
+    "url": "/diabloweb/static/js/storage.cc738d1f.chunk.js"
   },
   {
     "revision": "ca302877e60a52f1dc043ee83aacb676",
@@ -56,7 +56,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/media/shift.b40e4a63.svg"
   },
   {
-    "revision": "f7447b8193b05c31c105b8adb2303b82",
+    "revision": "f401594deb83747a72d66059d8b884b3",
     "url": "/diabloweb/storage.html"
   }
 ]);
