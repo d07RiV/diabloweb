@@ -13,7 +13,7 @@ export default async function load_spawn(api, fs) {
   }
   if (!file) {
     const spawn = await axios.request({
-      url: '/spawn.mpq',
+      url: process.env.PUBLIC_URL + '/spawn.mpq',
       responseType: 'arraybuffer',
       onDownloadProgress: e => {
         if (api.onProgress) {

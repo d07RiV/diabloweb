@@ -4,8 +4,8 @@ import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 
-const DiabloSize = 1288646;
-const SpawnSize = 1160666;
+const DiabloSize = 1288845;
+const SpawnSize = 1160682;
 
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
@@ -172,14 +172,18 @@ worker.DApi = DApi;
 let wasm = null;
 
 function call_api(func, ...params) {
-  audioBatch = [];
-  audioTransfer = [];
-  wasm["_" + func](...params);
-  if (audioBatch.length) {
-    maxSoundId = maxBatchId;
-    worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
-    audioBatch = null;
-    audioTransfer = null;
+  try {
+    audioBatch = [];
+    audioTransfer = [];
+    wasm["_" + func](...params);
+    if (audioBatch.length) {
+      maxSoundId = maxBatchId;
+      worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
+      audioBatch = null;
+      audioTransfer = null;
+    }
+  } catch (e) {
+    worker.postMessage({action: "error", error: e.message});
   }
 }
 

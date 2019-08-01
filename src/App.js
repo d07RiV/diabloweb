@@ -103,8 +103,12 @@ class App extends React.Component {
 
   openKeyboard(open) {
     if (open) {
+      this.showKeyboard = true;
+      this.element.classList.add("keyboard");
       this.keyboard.focus();
     } else {
+      this.showKeyboard = false;
+      this.element.classList.remove("keyboard");
       this.keyboard.blur();
     }
   }
@@ -262,9 +266,11 @@ class App extends React.Component {
   onKeyDown = e => {
     if (!this.canvas) return;
     this.game("DApi_Key", 0, this.eventMods(e), e.keyCode);
-    if (e.keyCode >= 32 && e.key.length === 1) {
-      this.game("DApi_Char", e.key.charCodeAt(0));
-    }
+    // if (e.keyCode >= 32 && e.key.length === 1) {
+    //   this.game("DApi_Char", e.key.charCodeAt(0));
+    // }
+    this.clearKeySel();
+    e.preventDefault();
   }
 
   onMenu = e => {
@@ -274,9 +280,27 @@ class App extends React.Component {
   onKeyUp = e => {
     if (!this.canvas) return;
     this.game("DApi_Key", 1, this.eventMods(e), e.keyCode);
-    const text = this.keyboard.value;
-    const values = [...Array(15)].map((_, i) => i < text.length ? text.charCodeAt(i) : 0);
-    this.game("DApi_SyncText", ...values);
+    this.clearKeySel();
+  }
+
+  clearKeySel() {
+    if (this.showKeyboard) {
+      const len = this.keyboard.value.length;
+      this.keyboard.setSelectionRange(len, len);
+    }
+  }
+
+  onKeyboard = () => {
+    if (this.showKeyboard) {
+      const text = this.keyboard.value;
+      const valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, 15);
+      if (text !== valid) {
+        this.keyboard.value = valid;
+      }
+      this.clearKeySel();
+      const values = [...Array(15)].map((_, i) => i < valid.length ? valid.charCodeAt(i) : 0);
+      this.game("DApi_SyncText", ...values);
+    }
   }
 
   parseFile = e => {
@@ -443,7 +467,7 @@ class App extends React.Component {
   render() {
     const {started, loading, error, progress, dropping, touch, has_spawn} = this.state;
     return (
-      <div className={classNames("App", {touch, started, dropping})} ref={this.setElement}>
+      <div className={classNames("App", {touch, started, dropping, keyboard: this.showKeyboard})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
           <div className={classNames("touch-button", "touch-button-0", {active: this.touchMods[0]})} ref={this.setTouch0}/>
           <div className={classNames("touch-button", "touch-button-1", {active: this.touchMods[1]})} ref={this.setTouch1}/>
@@ -455,14 +479,16 @@ class App extends React.Component {
           <div className={classNames("touch-button", "touch-button-2")} ref={this.setTouch5}/>
         </div>
         <div className="Body">
-          {!error && (
-            <canvas ref={this.setCanvas} width={640} height={480}/>
-          )}
+          {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
+          <input type="text" className="keyboard" onChange={this.onKeyboard} ref={this.setKeyboard} spellCheck={false}/>
         </div>
         <div className="BodyV">
-          <input type="text" className="keyboard" ref={this.setKeyboard}/>
           {!!error && (
-            <div className="error">{error}</div>
+            <Link className="error" href="https://github.com/d07RiV/diabloweb/issues">
+              <p className="header">The following error has occurred:</p>
+              <p className="body">{error}</p>
+              <p className="footer">Click to go to GitHub issues</p>
+            </Link>
           )}
           {!!loading && !started && !error && (
             <div className="loading">
