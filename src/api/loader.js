@@ -36,14 +36,14 @@ function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
 
 function testOffscreen() {
   return false;
-  try {
+  /*try {
     const canvas = document.createElement("canvas");
     const offscreen = canvas.transferControlToOffscreen();
     const context = offscreen.getContext("2d");
     return context != null;
   } catch (e) {
     return false;
-  }
+  }*/
 }
 
 async function do_load_game(api, audio, mpq) {
@@ -106,7 +106,7 @@ async function do_load_game(api, audio, mpq) {
         }
       });
       const transfer= [];
-      for (let [name, file] of fs.files) {
+      for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
       worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);

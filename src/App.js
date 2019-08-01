@@ -162,6 +162,11 @@ class App extends React.Component {
   }
 
   start(file) {
+    if (file && file.name.match(/\.sv$/i)) {
+      this.fs.then(fs => fs.upload(file)).then(console.log(`Updated ${file.name}`));
+      return;
+    }
+
     document.removeEventListener("drop", this.onDrop, true);
     document.removeEventListener("dragover", this.onDragOver, true);
     document.removeEventListener("dragenter", this.onDragEnter, true);
@@ -266,11 +271,15 @@ class App extends React.Component {
   onKeyDown = e => {
     if (!this.canvas) return;
     this.game("DApi_Key", 0, this.eventMods(e), e.keyCode);
-    // if (e.keyCode >= 32 && e.key.length === 1) {
-    //   this.game("DApi_Char", e.key.charCodeAt(0));
-    // }
+    if (e.keyCode >= 32 && e.key.length === 1 && !this.showKeyboard) {
+      this.game("DApi_Char", e.key.charCodeAt(0));
+    }
     this.clearKeySel();
-    e.preventDefault();
+    if (!this.showKeyboard) {
+      if (e.keyCode === 8 || (e.keyCode >= 112 && e.keyCode <= 119)) {
+        e.preventDefault();
+      }
+    }
   }
 
   onMenu = e => {
@@ -492,7 +501,7 @@ class App extends React.Component {
           )}
           {!!loading && !started && !error && (
             <div className="loading">
-              {progress && progress.text || 'Loading...'}
+              {(progress && progress.text) || 'Loading...'}
               {progress != null && !!progress.total && (
                 <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress.loaded / progress.total)}%`}}/></span></span>
               )}
