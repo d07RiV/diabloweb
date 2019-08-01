@@ -47,6 +47,14 @@ async function downloadFile(store, name) {
   }
 }
 
+async function downloadSaves(store) {
+  for (let name of await store.keys()) {
+    if (name.match(/\.sv$/i)) {
+      downloadFile(store, name);
+    }
+  }
+}
+
 const readFile = file => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => resolve(reader.result);
@@ -77,6 +85,7 @@ export default async function create_fs(load) {
       }
     }
     window.DownloadFile = name => downloadFile(store, name);
+    window.DownloadSaves = () => downloadSaves(store);
     return {
       files,
       update: (name, data) => store.set(name, data),
@@ -86,6 +95,7 @@ export default async function create_fs(load) {
     };
   } catch (e) {
     window.DownloadFile = () => console.error('IndexedDB is not supported');
+    window.DownloadSaves = () => console.error('IndexedDB is not supported');
     return {
       files: new Map(),
       update: () => Promise.resolve(),
