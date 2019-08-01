@@ -46,7 +46,7 @@ class App extends React.Component {
   touchMods = [false, false, false, false, false, false];
   touchBelt = [-1, -1, -1, -1, -1, -1];
 
-  fs = create_fs(this);
+  fs = create_fs(true);
 
   constructor(props) {
     super(props);
@@ -344,6 +344,11 @@ class App extends React.Component {
     this.touchButton = touchOther;
     if (touchOther) {
       this.setTouchMod(touchOther.index, true);
+      if (touchOther.index === TOUCH_MOVE) {
+        this.setTouchMod(TOUCH_RMB, false);
+      } else if (touchOther.index === TOUCH_RMB) {
+        this.setTouchMod(TOUCH_MOVE, false);
+      }
       delete this.panPos;
     } else if (touches.length === 2) {
       const x = (touches[1].clientX + touches[0].clientX) / 2, y = (touches[1].clientY + touches[0].clientY) / 2;
@@ -406,6 +411,10 @@ class App extends React.Component {
       const {x, y} = this.mousePos(prevTc);
       this.game("DApi_Mouse", 2, 1, this.eventMods(e), x, y);
       this.game("DApi_Mouse", 2, 2, this.eventMods(e), x, y);
+
+      if (this.touchMods[TOUCH_RMB] && (!this.touchButton || this.touchButton.index !== TOUCH_RMB)) {
+        this.setTouchButton(TOUCH_RMB, false);
+      }
     }
     if (!document.fullscreenElement) {
       this.element.requestFullscreen();
@@ -469,22 +478,20 @@ class App extends React.Component {
                 This is a web port of the original Diablo game, based on source code reconstructed by
                 GalaXyHaXz and devilution team: <Link href="https://github.com/diasurgical/devilution">https://github.com/diasurgical/devilution</Link>
               </p>
-              <form>
+              <p>
+                If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
+                The game can be purchased from <Link href="https://www.gog.com/game/diablo">GoG</Link>.
+              </p>
+              {!has_spawn && (
                 <p>
-                  If you own the original game, you can drop the original DIABDAT.MPQ onto this page (or <label htmlFor="loadFile" className="link" onClick={this.download}>click here</label>)
-                  to start playing. The game can be purchased from <Link href="https://www.gog.com/game/diablo">GoG</Link>.
-                </p>
-                <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
-              </form>
-              {has_spawn ? (
-                <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
-              ) : (
-                <p>
-                  Or you can download and play the shareware version instead (50MB download). <i>The site has lately been under too much stress due to users downloading the shareware
-                  package, so instead you will need to <a href="https://d07riv.github.io/diabloweb/public/spawn.mpq">download it from GitHub</a>, then drop it on the page (or upload
-                  by <label htmlFor="loadFile" className="link" onClick={this.download}>clicking here</label>).</i>
+                  Or you can play the shareware version for free (50MB download).
                 </p>
               )}
+              <form>
+                <label htmlFor="loadFile" className="startButton">Select MPQ</label>
+                <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
+              </form>
+              <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
             </div>
           )}
         </div>

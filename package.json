@@ -64,7 +64,8 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "test": "node scripts/test.js"
+    "test": "node scripts/test.js",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -131,8 +132,10 @@
       "react-app"
     ]
   },
+  "homepage": "https://d07riv.github.io/diabloweb",
   "devDependencies": {
     "exports-loader": "^0.7.0",
+    "gh-pages": "^2.0.1",
     "node-sass": "^4.12.0",
     "worker-loader": "^2.0.0"
   }

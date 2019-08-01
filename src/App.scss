@@ -79,7 +79,7 @@ body, #root, .App {
     text-align: center;
     background: #000;
     p {
-      margin: 12px 0;
+      margin: 10px 0;
     }
     .startButton {
       display: inline-block;
@@ -88,6 +88,8 @@ body, #root, .App {
       font-size: 2em;
       padding: 4px 18px;
       cursor: pointer;
+      margin-top: 6px;
+      width: 90%;
       &:hover {
         background-color: #111;
       }
