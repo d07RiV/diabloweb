@@ -4,11 +4,11 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/54277a9e96a084857713.worker.js"
   },
   {
-    "revision": "82ae5e92bb9555e0cb14f42420976bc7",
+    "revision": "c8f4d79e5e9d7cfbae980d19f195be20",
     "url": "/diabloweb/index.html"
   },
   {
-    "revision": "75ef4036ea284c09e5a2",
+    "revision": "ccfdd318825889f9e0bb",
     "url": "/diabloweb/static/css/main.9fcbefb1.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/5.bb4b864b.chunk.js"
   },
   {
-    "revision": "75ef4036ea284c09e5a2",
-    "url": "/diabloweb/static/js/main.5373d3f9.chunk.js"
+    "revision": "ccfdd318825889f9e0bb",
+    "url": "/diabloweb/static/js/main.21ca9033.chunk.js"
   },
   {
     "revision": "077fe45e700d7971de0b",
