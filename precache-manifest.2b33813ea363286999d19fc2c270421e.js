@@ -1,14 +1,14 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "bc46ac496acbdf0d1b65e2a1f137dac5",
-    "url": "/diabloweb/54277a9e96a084857713.worker.js"
+    "revision": "6606db883dd10e96dcd5c899ba26d59c",
+    "url": "/diabloweb/a452417be70a92d7cbdf.worker.js"
   },
   {
-    "revision": "9532a0620aff405264f3c4a00ea02e0d",
+    "revision": "9af6e05ee6933fc351b4a36564f443bf",
     "url": "/diabloweb/index.html"
   },
   {
-    "revision": "4d682fbe6f889ac05131",
+    "revision": "504b41b82eb473907ba7",
     "url": "/diabloweb/static/css/main.9fcbefb1.chunk.css"
   },
   {
@@ -20,8 +20,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/5.bb4b864b.chunk.js"
   },
   {
-    "revision": "4d682fbe6f889ac05131",
-    "url": "/diabloweb/static/js/main.d7e3eea7.chunk.js"
+    "revision": "504b41b82eb473907ba7",
+    "url": "/diabloweb/static/js/main.5add5680.chunk.js"
   },
   {
     "revision": "077fe45e700d7971de0b",
@@ -32,16 +32,16 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/runtime~storage.83a78cef.js"
   },
   {
-    "revision": "cd9016ffded851c3dd00",
-    "url": "/diabloweb/static/js/storage.2faf6f7c.chunk.js"
+    "revision": "076e6ef6910c9d8cf67d",
+    "url": "/diabloweb/static/js/storage.447359e6.chunk.js"
   },
   {
-    "revision": "9c99d3719fbeab3c7897493997f9c49f",
-    "url": "/diabloweb/static/media/Diablo.9c99d371.wasm"
+    "revision": "ca302877e60a52f1dc043ee83aacb676",
+    "url": "/diabloweb/static/media/Diablo.ca302877.wasm"
   },
   {
-    "revision": "614eaf08215dc498a0132ed73747cf7f",
-    "url": "/diabloweb/static/media/DiabloSpawn.614eaf08.wasm"
+    "revision": "1a7b93b3e3c5bd5fab9a1a7c6c4cd18e",
+    "url": "/diabloweb/static/media/DiabloSpawn.1a7b93b3.wasm"
   },
   {
     "revision": "ddc5d817712fdde5a23034ba0b719c78",
@@ -56,7 +56,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/media/shift.b40e4a63.svg"
   },
   {
-    "revision": "09060643f6c2746c7e9e0d8233f19f41",
+    "revision": "f7447b8193b05c31c105b8adb2303b82",
     "url": "/diabloweb/storage.html"
   }
 ]);
