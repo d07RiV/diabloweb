@@ -194,7 +194,7 @@ const readFile = (file, progress) => new Promise((resolve, reject) => {
       progress({loaded: file.size});
     }
     resolve(reader.result);
-  },
+  };
   reader.onerror = () => reject(reader.error);
   reader.onabort = () => reject();
   if (progress) {
