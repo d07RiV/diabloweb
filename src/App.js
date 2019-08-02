@@ -6,10 +6,20 @@ import create_fs from './fs';
 import load_game from './api/loader';
 import { SpawnSize } from './api/load_spawn';
 
-function reportLink(e) {
+function reportLink(e, retail) {
   const message = e.stack || e.message;
   const url = new URL("https://github.com/d07RiV/diabloweb/issues/new");
-  url.searchParams.set("body", `**Error message:**\n\n${message.split("\n").map(line => "    " + line).join("\n")}`);
+  url.searchParams.set("body",
+`**Description:**
+[Please describe what you were doing before the error occurred]
+
+**App version:**
+DiabloWeb ${process.env.VERSION} (${retail ? 'Retail' : 'Shareware'})
+
+**Error message:**
+    
+${message.split("\n").map(line => "    " + line).join("\n")}
+`);
   return url.toString();
 }
 
@@ -135,7 +145,21 @@ class App extends React.Component {
     this.setState({progress});
   }
 
+  onExit() {
+    window.location = window.location;
+  }
+
+  setCurrentSave(name) {
+    this.saveName = name;
+  }
+  downloadSave = e => {
+    this.fs.then(fs => this.saveName && fs.download(this.saveName));
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
   drawBelt(idx, slot) {
+    if (!this.canvas) return;
     if (!this.touchButtons[idx]) {
       return;
     }
@@ -180,7 +204,7 @@ class App extends React.Component {
     document.removeEventListener("dragleave", this.onDragLeave, true);
     this.setState({dropping: 0});
 
-    this.setState({loading: true});
+    this.setState({loading: true, retail: !!(file && file.name.match(/^diabdat\.mpq$/i))});
 
     load_game(this, file).then(game => {
       this.game = game;
@@ -500,10 +524,11 @@ class App extends React.Component {
         </div>
         <div className="BodyV">
           {!!error && (
-            <Link className="error" href={reportLink(error)}>
+            <Link className="error" href={reportLink(error, this.state.retail)}>
               <p className="header">The following error has occurred:</p>
               <p className="body">{error.message}</p>
-              <p className="footer">Click to go to GitHub issues</p>
+              <p className="footer">Click to create an issue on GitHub</p>
+              {this.saveName != null && <p className="link" onClick={this.downloadSave}>Download save file</p>}
             </Link>
           )}
           {!!loading && !started && !error && (

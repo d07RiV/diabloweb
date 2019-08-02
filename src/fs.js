@@ -91,6 +91,7 @@ export default async function create_fs(load) {
       update: (name, data) => store.set(name, data),
       delete: name => store.remove(name),
       clear: () => store.clear(),
+      download: name => downloadFile(store, name),
       upload: file => uploadFile(store, files, file),
     };
   } catch (e) {
@@ -101,6 +102,7 @@ export default async function create_fs(load) {
       update: () => Promise.resolve(),
       delete: () => Promise.resolve(),
       clear: () => Promise.resolve(),
+      download: () => Promise.resolve(),
       upload: () => Promise.resolve(),
     };
   }  

@@ -1,6 +1,6 @@
 {
   "name": "diabloweb",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "dependencies": {
     "@babel/core": "7.4.3",
@@ -63,7 +63,7 @@
   },
   "scripts": {
     "start": "node scripts/start.js",
-    "build": "npm version --no-git-tag-version && node scripts/build.js",
+    "build": "npm version patch --no-git-tag-version && node scripts/build.js",
     "test": "node scripts/test.js",
     "deploy": "gh-pages -d build"
   },

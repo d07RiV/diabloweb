@@ -4,8 +4,8 @@ import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 
-const DiabloSize = 1288845;
-const SpawnSize = 1160682;
+const DiabloSize = 1316452;
+const SpawnSize = 1196648;
 
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
@@ -15,10 +15,18 @@ let imageData = null;
 let files = null;
 let renderBatch = null;
 let drawBelt = null;
+let is_spawn = false;
 
 const DApi = {
   exit_error(error) {
     worker.postMessage({action: "error", error});
+  },
+
+  exit_game() {
+    worker.postMessage({action: "exit"});
+  },
+  current_save_id(id) {
+    worker.postMessage({action: "current_save", name: id >= 0 ? (is_spawn ? `spawn${id}.sv` : `single_${id}.sv`) : null});
   },
 
   get_file_size(path) {
@@ -219,6 +227,7 @@ async function initWasm(spawn, progress) {
 }
 
 async function init_game(mpq, spawn, offscreen) {
+  is_spawn = spawn;
   if (offscreen) {
     canvas = new OffscreenCanvas(640, 480);
     context = canvas.getContext("2d");

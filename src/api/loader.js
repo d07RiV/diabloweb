@@ -102,6 +102,12 @@ async function do_load_game(api, audio, mpq) {
         case "progress":
           api.onProgress({text: data.text, loaded: data.loaded, total: data.total});
           break;
+        case "exit":
+          api.onExit();
+          break;
+        case "current_save":
+          api.setCurrentSave(data.name);
+          break;
         default:
         }
       });
