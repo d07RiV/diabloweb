@@ -121,7 +121,7 @@ class App extends React.Component {
   }
 
   onError(message, stack) {
-    this.setState({error: {message, stack}});
+    this.setState(({error}) => !error && {error: {message, stack}});
   }
 
   openKeyboard(open) {
@@ -152,7 +152,9 @@ class App extends React.Component {
   }
 
   onExit() {
-    window.location = window.location;
+    if (!this.state.error) {
+      window.location.reload();
+    }
   }
 
   setCurrentSave(name) {
