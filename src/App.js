@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 function reportLink(e, retail) {
-  const message = e.stack || e.message;
+  const message = e.stack || e.message || "Unknown error";
   const url = new URL("https://github.com/d07RiV/diabloweb/issues/new");
   url.searchParams.set("body",
 `**Description:**

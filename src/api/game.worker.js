@@ -191,7 +191,7 @@ function call_api(func, ...params) {
       audioTransfer = null;
     }
   } catch (e) {
-    worker.postMessage({action: "error", error: e.message, stack: e.stack});
+    worker.postMessage({action: "error", error: e.message || (e.constructor && e.constructor.name), stack: e.stack});
   }
 }
 
@@ -274,7 +274,7 @@ worker.addEventListener("message", ({data}) => {
     files = data.files;
     init_game(data.mpq, data.spawn, data.offscreen).then(
       () => worker.postMessage({action: "loaded"}),
-      e => worker.postMessage({action: "failed", error: e.message || e.name, stack: e.stack}));
+      e => worker.postMessage({action: "failed", error: e.message || e.name || (e.constructor && e.constructor.name), stack: e.stack}));
     break;
   case "event":
     call_api(data.func, ...data.params);
