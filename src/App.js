@@ -6,6 +6,13 @@ import create_fs from './fs';
 import load_game from './api/loader';
 import { SpawnSize } from './api/load_spawn';
 
+function reportLink(e) {
+  const message = e.stack || e.message;
+  const url = new URL("https://github.com/d07RiV/diabloweb/issues/new");
+  url.searchParams.set("body", `**Error message:**\n\n${message.split("\n").map(line => "    " + line).join("\n")}`);
+  return url.toString();
+}
+
 function isDropFile(e) {
   if (e.dataTransfer.items) {
     for (let i = 0; i < e.dataTransfer.items.length; ++i) {
@@ -97,8 +104,8 @@ class App extends React.Component {
     this.setState(({dropping}) => ({dropping: Math.max(dropping + inc, 0)}));
   }
 
-  onError(text) {
-    this.setState({error: text});
+  onError(message, stack) {
+    this.setState({error: {message, stack}});
   }
 
   openKeyboard(open) {
@@ -194,7 +201,7 @@ class App extends React.Component {
       window.addEventListener('resize', this.onResize);
 
       this.setState({started: true});
-    }, e => this.onError(e.message));
+    }, e => this.onError(e.message, e.stack));
   }
 
   pointerLocked() {
@@ -493,9 +500,9 @@ class App extends React.Component {
         </div>
         <div className="BodyV">
           {!!error && (
-            <Link className="error" href="https://github.com/d07RiV/diabloweb/issues">
+            <Link className="error" href={reportLink(error)}>
               <p className="header">The following error has occurred:</p>
-              <p className="body">{error}</p>
+              <p className="body">{error.message}</p>
               <p className="footer">Click to go to GitHub issues</p>
             </Link>
           )}

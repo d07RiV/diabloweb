@@ -183,7 +183,7 @@ function call_api(func, ...params) {
       audioTransfer = null;
     }
   } catch (e) {
-    worker.postMessage({action: "error", error: e.message});
+    worker.postMessage({action: "error", error: e.message, stack: e.stack});
   }
 }
 
@@ -249,7 +249,10 @@ async function init_game(mpq, spawn, offscreen) {
   }
 
   progress("Initializing...");
-  wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0);
+
+  const vers = process.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
+
+  wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
 
   setInterval(() => {
     call_api("DApi_Render", Math.floor(performance.now()));  
@@ -262,7 +265,7 @@ worker.addEventListener("message", ({data}) => {
     files = data.files;
     init_game(data.mpq, data.spawn, data.offscreen).then(
       () => worker.postMessage({action: "loaded"}),
-      e => {debugger;worker.postMessage({action: "failed", error: e.message || e.name});});
+      e => worker.postMessage({action: "failed", error: e.message || e.name, stack: e.stack}));
     break;
   case "event":
     call_api(data.func, ...data.params);

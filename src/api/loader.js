@@ -94,10 +94,10 @@ async function do_load_game(api, audio, mpq) {
           api.openKeyboard(data.open);
           break;
         case "error":
-          api.onError(data.error);
+          api.onError(data.error, data.stack);
           break;
         case "failed":
-          reject(Error(data.error));
+          reject(Error(data.stack || data.error));
           break;
         case "progress":
           api.onProgress({text: data.text, loaded: data.loaded, total: data.total});
