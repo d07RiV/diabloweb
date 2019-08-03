@@ -25,6 +25,13 @@ DiabloWeb ${process.env.VERSION} (${retail ? 'Retail' : 'Shareware'})
 **Error message:**
     
 ${message.split("\n").map(line => "    " + line).join("\n")}
+
+**User agent:**
+
+    ${navigator.userAgent}
+
+**Save file:**
+[Please attach the save file, if applicable. The error box should have a link to download the current save you were playing; alternatively, you can open dev console on the game page (F12) and type in ${"`DownloadSaves()`"}]
 `);
   return url.toString();
 }
