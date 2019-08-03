@@ -15,11 +15,18 @@ export default function init_sound() {
     return no_sound();
   }
 
-  const context = new AudioContext();
+  let context = null;
+  try {
+    context = new AudioContext();
+  } catch (e) {
+  }
   const sounds = new Map();
 
   return {
     create_sound(id, data, length, channels, rate) {
+      if (!context) {
+        return;
+      }
       const buffer = context.createBuffer(channels, length, rate);
       for (let i = 0; i < channels; ++i) {
         buffer.copyToChannel(data.subarray(i * length, i * length + length), i);
@@ -31,6 +38,9 @@ export default function init_sound() {
       });
     },
     duplicate_sound(id, srcId) {
+      if (!context) {
+        return;
+      }
       const src = sounds.get(srcId);
       if (!src) {
         return;
@@ -77,5 +87,15 @@ export default function init_sound() {
       }
       sounds.delete(id);
     },
+
+    stop_all() {
+      for (let [, sound] of sounds) {
+        if (sound.source) {
+          sound.source.stop();
+        }
+      }
+      sounds.clear();
+      context = null;
+    }
   };
 }

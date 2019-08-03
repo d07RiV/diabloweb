@@ -94,6 +94,7 @@ async function do_load_game(api, audio, mpq) {
           api.openKeyboard(data.open);
           break;
         case "error":
+          audio.stop_all();
           api.onError(data.error, data.stack);
           break;
         case "failed":
