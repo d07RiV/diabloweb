@@ -8,6 +8,6 @@ I've modified the code to remove all dependencies and exposed the minimal requir
 
 Event handling (especially in the menus) had to be modified significantly to fit the JS model.
 
-The project is hosted on https://diablo.rivsoft.net along with spawn.mpq from the shareware version (place it in the public folder to run locally).
+The project is hosted on https://d07RiV.github.io/diabloweb/ along with spawn.mpq from the shareware version (place it in the public folder to run locally).
 This allows shareware version to be played anywhere, even on mobile phones. To play the full game, you must use your own DIABDAT.MPQ that you can obtain
 with the original copy of the game from [GoG](url=https://www.gog.com/game/diablo).
