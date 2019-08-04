@@ -7,6 +7,9 @@ import axios from 'axios';
 const DiabloSize = 1316452;
 const SpawnSize = 1196648;
 
+const SpawnMpqSize = 50274091;
+const RetailMpqSize = 517501282;
+
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
@@ -16,6 +19,52 @@ let files = null;
 let renderBatch = null;
 let drawBelt = null;
 let is_spawn = false;
+
+const ChunkSize = 1 << 20;
+class RemoteFile {
+  constructor(url, size) {
+    this.url = url;
+    this.byteLength = size;
+
+    this.buffer = new Uint8Array(size);
+    this.chunks = new Uint8Array(((size + ChunkSize - 1) >> 20) | 0);
+  }
+
+  subarray(start, end) {
+    let chunk0 = (start / ChunkSize) | 0;
+    let chunk1 = ((end + ChunkSize - 1) / ChunkSize) | 0;
+    let missing0 = chunk1, missing1 = chunk0;
+    for (let i = chunk0; i < chunk1; ++i) {
+      if (!this.chunks[i]) {
+        missing0 = Math.min(missing0, i);
+        missing1 = Math.max(missing1, i);
+      }
+    }
+    if (missing0 <= missing1) {
+      const request = new XMLHttpRequest();
+      request.open('GET', this.url, false);
+      request.setRequestHeader('Range', `bytes=${missing0 * ChunkSize}-${Math.min(missing1 * ChunkSize + ChunkSize - 1, this.byteLength - 1)}`);
+      request.responseType = 'arraybuffer';
+      request.send();
+      if (request.status < 200 || request.status > 206) {
+        worker.postMessage({action: "error", error: `Failed to load remote file`});
+      } else {
+        const header = request.getResponseHeader('Content-Range');
+        let m, start = 0;
+        if (header && (m = header.match(/bytes (\d+)-(\d+)\/(\d+)/))) {
+          start = parseInt(m[1]);
+        }
+        this.buffer.set(new Uint8Array(request.response), start);
+        chunk0 = ((start + ChunkSize - 1) / ChunkSize) | 0;
+        chunk1 = ((start + request.response.byteLength + ChunkSize - 1) / ChunkSize) | 0;
+        for (let i = chunk0; i < chunk1; ++i) {
+          this.chunks[i] = 1;
+        }
+      }
+    }
+    return this.buffer.subarray(start, end);
+  }
+}
 
 const DApi = {
   exit_error(error) {
@@ -36,7 +85,7 @@ const DApi = {
   get_file_contents(path, array, offset) {
     const data = files.get(path.toLowerCase());
     if (data) {
-      array.set(data.subarray(offset, offset + array.length));
+      array.set(data.subarray(offset, offset + array.byteLength));
     }
   },
   put_file_contents(path, array) {
@@ -238,6 +287,14 @@ async function init_game(mpq, spawn, offscreen) {
     Object.assign(DApi, DApi_renderOffscreen);
   } else {
     Object.assign(DApi, DApi_renderLegacy);
+  }
+
+  if (!mpq) {
+    const name = (spawn ? 'spawn.mpq' : 'diabdat.mpq');
+    if (!files.has(name)) {
+      // This should never happen, but we do support remote loading
+      files.set(name, new RemoteFile(`${process.env.PUBLIC_URL}/${name}`, spawn ? SpawnMpqSize : RetailMpqSize));
+    }
   }
 
   progress("Loading...");

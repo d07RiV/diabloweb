@@ -237,7 +237,7 @@ class App extends React.Component {
 
     this.setState({loading: true, retail});
 
-    load_game(this, file).then(game => {
+    load_game(this, file, !retail).then(game => {
       this.game = game;
 
       document.addEventListener('mousemove', this.onMouseMove, true);

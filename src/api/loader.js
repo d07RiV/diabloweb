@@ -46,15 +46,9 @@ function testOffscreen() {
   }*/
 }
 
-async function do_load_game(api, audio, mpq) {
+async function do_load_game(api, audio, mpq, spawn) {
   const fs = await api.fs;
-  let spawn = true;
-  if (mpq) {
-    if (!mpq.name.match(/^spawn\.mpq$/i)) {
-      spawn = false;
-      fs.files.delete('spawn.mpq');
-    }
-  } else {
+  if (spawn && !mpq) {
     await load_spawn(api, fs);
   }
 
@@ -124,7 +118,7 @@ async function do_load_game(api, audio, mpq) {
   });
 }
 
-export default function load_game(api, mpq) {
+export default function load_game(api, mpq, spawn) {
   const audio = init_sound();
-  return do_load_game(api, audio, mpq);
+  return do_load_game(api, audio, mpq, spawn);
 }
