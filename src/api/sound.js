@@ -23,7 +23,7 @@ export default function init_sound() {
   const sounds = new Map();
 
   return {
-    create_sound(id, data, length, channels, rate) {
+    create_sound_raw(id, data, length, channels, rate) {
       if (!context) {
         return;
       }
@@ -31,6 +31,17 @@ export default function init_sound() {
       for (let i = 0; i < channels; ++i) {
         buffer.copyToChannel(data.subarray(i * length, i * length + length), i);
       }
+      sounds.set(id, {
+        buffer: Promise.resolve(buffer),
+        gain: context.createGain(),
+        panner: new StereoPannerNode(context, {pan: 0}),
+      });
+    },
+    create_sound(id, data) {
+      if (!context) {
+        return;
+      }
+      const buffer = context.decodeAudioData(data.buffer);
       sounds.set(id, {
         buffer,
         gain: context.createGain(),
@@ -55,16 +66,19 @@ export default function init_sound() {
       const src = sounds.get(id);
       if (src) {
         if (src.source) {
-          src.source.stop();
+          src.source.then(source => source.stop());
         }
         src.gain.gain.value = Math.pow(2.0, volume / 1000.0);
         const relVolume = Math.pow(2.0, pan / 1000.0);
         src.panner.pan.value = 1.0 - 2.0 / (1.0 + relVolume);
-        src.source = context.createBufferSource();
-        src.source.buffer = src.buffer;
-        src.source.loop = !!loop;
-        src.source.connect(src.gain).connect(src.panner).connect(context.destination);
-        src.source.start();
+        src.source = src.buffer.then(buffer => {
+          const source = context.createBufferSource();
+          source.buffer = buffer;
+          source.loop = !!loop;
+          source.connect(src.gain).connect(src.panner).connect(context.destination);
+          source.start();
+          return source;
+        });
       }
     },
     set_volume(id, volume) {
@@ -76,14 +90,14 @@ export default function init_sound() {
     stop_sound(id) {
       const src = sounds.get(id);
       if (src && src.source) {
-        src.source.stop();
+        src.source.then(source => source.stop());
         delete src.source;
       }
     },
     delete_sound(id) {
       const src = sounds.get(id);
       if (src && src.source) {
-        src.source.stop();
+        src.source.then(source => source.stop());
       }
       sounds.delete(id);
     },
@@ -91,7 +105,7 @@ export default function init_sound() {
     stop_all() {
       for (let [, sound] of sounds) {
         if (sound.source) {
-          sound.source.stop();
+          sound.source.then(source => source.stop());
         }
       }
       sounds.clear();

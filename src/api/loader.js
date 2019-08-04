@@ -36,6 +36,9 @@ function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
 
 function testOffscreen() {
   return false;
+  // This works but I couldn't see any performance difference, and support for 2D canvas in workers is very poor.
+  // In this mode, instead of sending a batch of areas to draw back to the main thread, the worker does all drawing on its own and sends a complete bitmap object back.
+  // However, this effectively clears the worker's canvas, so we need to redraw the whole frame every time, which defeats the performance gained from reduced copying.
   /*try {
     const canvas = document.createElement("canvas");
     const offscreen = canvas.transferControlToOffscreen();

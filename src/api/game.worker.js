@@ -7,9 +7,6 @@ import axios from 'axios';
 const DiabloSize = 1316452;
 const SpawnSize = 1196648;
 
-const SpawnMpqSize = 50274091;
-const RetailMpqSize = 517501282;
-
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
@@ -22,12 +19,19 @@ let is_spawn = false;
 
 const ChunkSize = 1 << 20;
 class RemoteFile {
-  constructor(url, size) {
-    this.url = url;
-    this.byteLength = size;
+  constructor(url) {
+    const request = new XMLHttpRequest();
+    request.open('HEAD', url, false);
+    request.send();
+    if (request.status < 200 || request.status >= 300) {
+      worker.postMessage({action: "error", error: `Failed to load remote file`});
+    }
+    this.byteLength = parseInt(request.getResponseHeader('Content-Length'));
 
-    this.buffer = new Uint8Array(size);
-    this.chunks = new Uint8Array(((size + ChunkSize - 1) >> 20) | 0);
+    this.url = url;
+
+    this.buffer = new Uint8Array(this.byteLength);
+    this.chunks = new Uint8Array(((this.byteLength + ChunkSize - 1) >> 20) | 0);
   }
 
   subarray(start, end) {
@@ -46,7 +50,7 @@ class RemoteFile {
       request.setRequestHeader('Range', `bytes=${missing0 * ChunkSize}-${Math.min(missing1 * ChunkSize + ChunkSize - 1, this.byteLength - 1)}`);
       request.responseType = 'arraybuffer';
       request.send();
-      if (request.status < 200 || request.status > 206) {
+      if (request.status < 200 || request.status >= 300) {
         worker.postMessage({action: "error", error: `Failed to load remote file`});
       } else {
         const header = request.getResponseHeader('Content-Range');
@@ -196,18 +200,18 @@ const DApi_renderOffscreen = {
 
 let audioBatch = null, audioTransfer = null;
 let maxSoundId = 0, maxBatchId = 0;
-["create_sound", "duplicate_sound"].forEach(func => {
+["create_sound_raw", "create_sound", "duplicate_sound"].forEach(func => {
   DApi[func] = function(...params) {
     if (audioBatch) {
       maxBatchId = params[0] + 1;
       audioBatch.push({func, params});
-      if (func === "create_sound") {
+      if (func !== "duplicate_sound") {
         audioTransfer.push(params[1].buffer);
       }
     } else {
       maxSoundId = params[0] + 1;
       const transfer = [];
-      if (func === "create_sound") {
+      if (func !== "duplicate_sound") {
         transfer.push(params[1].buffer);
       }
       worker.postMessage({action: "audio", func, params}, transfer);
@@ -293,7 +297,7 @@ async function init_game(mpq, spawn, offscreen) {
     const name = (spawn ? 'spawn.mpq' : 'diabdat.mpq');
     if (!files.has(name)) {
       // This should never happen, but we do support remote loading
-      files.set(name, new RemoteFile(`${process.env.PUBLIC_URL}/${name}`, spawn ? SpawnMpqSize : RetailMpqSize));
+      files.set(name, new RemoteFile(`${process.env.PUBLIC_URL}/${name}`));
     }
   }
 
