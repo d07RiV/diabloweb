@@ -68,9 +68,10 @@ const Link = ({children, ...props}) => <a target="_blank" rel="noopener noreferr
 
 class App extends React.Component {
   files = new Map();
-  state = {started: false, loading: false, touch: false, dropping: 0, has_spawn: false};
+  state = {started: false, loading: false, dropping: 0, has_spawn: false};
   cursorPos = {x: 0, y: 0};
 
+  touchControls = false;
   touchButtons = [null, null, null, null, null, null];
   touchCtx = [null, null, null, null, null, null];
   touchMods = [false, false, false, false, false, false];
@@ -131,15 +132,22 @@ class App extends React.Component {
     this.setState(({error}) => !error && {error: {message, stack}});
   }
 
-  openKeyboard(open) {
-    if (open) {
-      this.showKeyboard = true;
+  openKeyboard(rect) {
+    if (rect) {
+      this.showKeyboard = {
+        left: `${(100 * (rect[0] - 10) / 640).toFixed(2)}%`,
+        top: `${(100 * (rect[1] - 10) / 480).toFixed(2)}%`,
+        width: `${(100 * (rect[2] - rect[0] + 20) / 640).toFixed(2)}%`,
+        height: `${(100 * (rect[3] - rect[1] + 20) / 640).toFixed(2)}%`,
+      };
       this.element.classList.add("keyboard");
+      Object.assign(this.keyboard.style, this.showKeyboard);
       this.keyboard.focus();
     } else {
       this.showKeyboard = false;
       this.element.classList.remove("keyboard");
       this.keyboard.blur();
+      this.keyboard.value = "";
     }
   }
 
@@ -244,7 +252,6 @@ class App extends React.Component {
       document.addEventListener('touchend', this.onTouchEnd, {passive: false, capture: true});
 
       document.addEventListener('pointerlockchange', this.onPointerLockChange);
-      document.addEventListener('fullscreenchange', this.onFullscreenChange);
       window.addEventListener('resize', this.onResize);
 
       this.setState({started: true});
@@ -304,6 +311,13 @@ class App extends React.Component {
 
   onMouseDown = e => {
     if (!this.canvas) return;
+    if (e.target === this.keyboard) {
+      return;
+    }
+    if (this.touchControls) {
+      this.touchControls = false;
+      this.element.classList.remove("touch");
+    }
     const {x, y} = this.mousePos(e);
     if (window.screen && window.innerHeight === window.screen.height) {
       // we're in fullscreen, let's get pointer lock!
@@ -317,6 +331,9 @@ class App extends React.Component {
 
   onMouseUp = e => {
     if (!this.canvas) return;
+    if (e.target === this.keyboard) {
+      return;
+    }
     const {x, y} = this.mousePos(e);
     this.game("DApi_Mouse", 2, this.mouseButton(e), this.eventMods(e), x, y);
     e.preventDefault();
@@ -376,10 +393,6 @@ class App extends React.Component {
   touchButton = null;
   touchCanvas = null;
 
-  onFullscreenChange = () => {
-    this.setState({touch: (document.fullscreenElement === this.element)});
-  }
-
   setTouchMod(index, value, use) {
     if (index < 3) {
       this.touchMods[index] = value;
@@ -397,6 +410,10 @@ class App extends React.Component {
 
   updateTouchButton(touches, release) {
     let touchOther = null;
+    if (!this.touchControls) {
+      this.touchControls = true;
+      this.element.classList.add("touch");
+    }
     const btn = this.touchButton;
     for (let {target, identifier, clientX, clientY} of touches) {
       if (btn && btn.id === identifier && this.touchButtons[btn.index] === target) {
@@ -472,6 +489,9 @@ class App extends React.Component {
 
   onTouchStart = e => {
     if (!this.canvas) return;
+    if (e.target === this.keyboard) {
+      return;
+    }
     e.preventDefault();
     if (this.updateTouchButton(e.touches, false)) {
       const {x, y} = this.mousePos(this.touchCanvas);
@@ -483,6 +503,9 @@ class App extends React.Component {
   }
   onTouchMove = e => {
     if (!this.canvas) return;
+    if (e.target === this.keyboard) {
+      return;
+    }
     e.preventDefault();
     if (this.updateTouchButton(e.touches, false)) {
       const {x, y} = this.mousePos(this.touchCanvas);
@@ -491,6 +514,9 @@ class App extends React.Component {
   }
   onTouchEnd = e => {
     if (!this.canvas) return;
+    if (e.target === this.keyboard) {
+      return;
+    }
     e.preventDefault();
     const prevTc = this.touchCanvas;
     this.updateTouchButton(e.touches, true);
@@ -530,7 +556,7 @@ class App extends React.Component {
   render() {
     const {started, loading, error, progress, dropping, touch, has_spawn} = this.state;
     return (
-      <div className={classNames("App", {touch, started, dropping, keyboard: this.showKeyboard})} ref={this.setElement}>
+      <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
           <div className={classNames("touch-button", "touch-button-0", {active: this.touchMods[0]})} ref={this.setTouch0}/>
           <div className={classNames("touch-button", "touch-button-1", {active: this.touchMods[1]})} ref={this.setTouch1}/>
@@ -542,8 +568,10 @@ class App extends React.Component {
           <div className={classNames("touch-button", "touch-button-2")} ref={this.setTouch5}/>
         </div>
         <div className="Body">
-          {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
-          <input type="text" className="keyboard" onChange={this.onKeyboard} ref={this.setKeyboard} spellCheck={false}/>
+          <div className="inner">
+            {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
+            <input type="text" className="keyboard" onChange={this.onKeyboard} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
+          </div>
         </div>
         <div className="BodyV">
           {!!error && (

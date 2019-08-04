@@ -56,11 +56,11 @@ const DApi = {
   set_cursor(x, y) {
     worker.postMessage({action: "cursor", x, y});
   },
-  open_keyboard() {
-    worker.postMessage({action: "keyboard", open: true});
+  open_keyboard(...args) {
+    worker.postMessage({action: "keyboard", rect: [...args]});
   },
   close_keyboard() {
-    worker.postMessage({action: "keyboard", open: false});
+    worker.postMessage({action: "keyboard", rect: null});
   },
 };
 

@@ -91,7 +91,7 @@ async function do_load_game(api, audio, mpq) {
           api.setCursorPos(data.x, data.y);
           break;
         case "keyboard":
-          api.openKeyboard(data.open);
+          api.openKeyboard(data.rect);
           break;
         case "error":
           audio.stop_all();

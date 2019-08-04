@@ -20,6 +20,13 @@ body, #root, .App {
   left: calc(50% - 200vh / 3);
   width: calc(400vh / 3);
 }
+.Body .inner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
 @media (max-aspect-ratio: 640/480) {
   .Body {
     left: 0;
@@ -39,12 +46,12 @@ body, #root, .App {
 }
 
 @media (min-aspect-ratio: 3/1) {
-  .App.keyboard .Body canvas {
+  .App.keyboard .Body .inner {
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 80vw;
-    height: auto;
+    width: 75vw;
+    height: 56.25vw;
     transform: translate(-50%, -70%);
   }
 }
@@ -66,10 +73,7 @@ body, #root, .App {
     color: rgba(0, 0, 0, 0);
     border: none;
     outline: none;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+    z-index: 100;
     display: none;
     cursor: none;
     &::selection {
