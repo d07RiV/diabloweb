@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-const SpawnSize = 50274091;
+const SpawnSizes = [50274091, 25830791];
 
-export { SpawnSize };
+export { SpawnSizes };
 
 export default async function load_spawn(api, fs) {
   let file = fs.files.get('spawn.mpq');
-  if (file && file.byteLength !== SpawnSize) {
+  if (file && !SpawnSizes.includes(file.byteLength)) {
     fs.files.delete('spawn.mpq');
     await fs.delete('spawn.mpq');
     file = null;
@@ -17,14 +17,14 @@ export default async function load_spawn(api, fs) {
       responseType: 'arraybuffer',
       onDownloadProgress: e => {
         if (api.onProgress) {
-          api.onProgress({text: 'Downloading...', loaded: e.loaded, total: e.total || SpawnSize});
+          api.onProgress({text: 'Downloading...', loaded: e.loaded, total: e.total || SpawnSizes[1]});
         }
       },
       headers: {
         'Cache-Control': 'max-age=31536000'
       }
     });
-    if (spawn.data.byteLength !== SpawnSize) {
+    if (!SpawnSizes.includes(spawn.data.byteLength)) {
       throw Error("Invalid spawn.mpq size. Try clearing cache and refreshing the page.");
     }
     const data = new Uint8Array(spawn.data);

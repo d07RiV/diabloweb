@@ -5,7 +5,7 @@ import ReactGA from 'react-ga';
 
 import create_fs from './fs';
 import load_game from './api/loader';
-import { SpawnSize } from './api/load_spawn';
+import { SpawnSizes } from './api/load_spawn';
 
 if (process.env.NODE_ENV === 'production') {
   ReactGA.initialize('UA-43123589-6');
@@ -98,7 +98,7 @@ class App extends React.Component {
 
     this.fs.then(fs => {
       const spawn = fs.files.get('spawn.mpq');
-      if (spawn && spawn.byteLength === SpawnSize) {
+      if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({has_spawn: true});
       }
     });
@@ -554,7 +554,7 @@ class App extends React.Component {
   }
 
   render() {
-    const {started, loading, error, progress, dropping, touch, has_spawn} = this.state;
+    const {started, loading, error, progress, dropping, has_spawn} = this.state;
     return (
       <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
