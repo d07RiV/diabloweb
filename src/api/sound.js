@@ -9,6 +9,12 @@ function no_sound() {
   };
 }
 
+function decodeAudioData(context, buffer) {
+  return new Promise((resolve, reject) => {
+    context.decodeAudioData(buffer, resolve, reject);
+  });
+}
+
 export default function init_sound() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) {
@@ -29,7 +35,7 @@ export default function init_sound() {
       }
       const buffer = context.createBuffer(channels, length, rate);
       for (let i = 0; i < channels; ++i) {
-        buffer.copyToChannel(data.subarray(i * length, i * length + length), i);
+        buffer.getChannelData(i).set(data.subarray(i * length, i * length + length));
       }
       sounds.set(id, {
         buffer: Promise.resolve(buffer),
@@ -41,7 +47,7 @@ export default function init_sound() {
       if (!context) {
         return;
       }
-      const buffer = context.decodeAudioData(data.buffer);
+      const buffer = decodeAudioData(context, data.buffer);
       sounds.set(id, {
         buffer,
         gain: context.createGain(),
