@@ -3,6 +3,7 @@ import DiabloModule from './Diablo.jscc';
 import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
+import websocket_open from './websocket';
 
 const DiabloSize = 1316452;
 const SpawnSize = 1196648;
@@ -16,6 +17,7 @@ let files = null;
 let renderBatch = null;
 let drawBelt = null;
 let is_spawn = false;
+let websocket = null;
 
 const ChunkSize = 1 << 20;
 class RemoteFile {
@@ -114,6 +116,15 @@ const DApi = {
   },
   close_keyboard() {
     worker.postMessage({action: "keyboard", rect: null});
+  },
+
+  websocket_send(data) {
+    if (websocket) {
+      websocket.send(data);
+    }
+  },
+  websocket_closed() {
+    return !websocket || websocket.readyState !== WebSocket.OPEN;
   },
 };
 
@@ -282,7 +293,7 @@ async function initWasm(spawn, progress) {
   return result;
 }
 
-async function init_game(mpq, spawn, offscreen) {
+async function init_game(mpq, spawn, offscreen, serverUrl) {
   is_spawn = spawn;
   if (offscreen) {
     canvas = new OffscreenCanvas(640, 480);
@@ -299,6 +310,16 @@ async function init_game(mpq, spawn, offscreen) {
       // This should never happen, but we do support remote loading
       files.set(name, new RemoteFile(`${process.env.PUBLIC_URL}/${name}`));
     }
+  }
+
+  if (serverUrl) {
+    progress("Connecting...");
+    websocket = await websocket_open(serverUrl, data => {
+      if (wasm) {
+        const ptr = wasm._DApi_AllocPacket(data.byteLength);
+        wasm.HEAPU8.set(new Uint8Array(data), ptr);
+      }
+    });
   }
 
   progress("Loading...");
@@ -325,6 +346,9 @@ async function init_game(mpq, spawn, offscreen) {
 
   const vers = process.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
 
+  if (websocket) {
+    wasm._SNet_InitWebsocket();
+  }
   wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
 
   setInterval(() => {
@@ -336,12 +360,13 @@ worker.addEventListener("message", ({data}) => {
   switch (data.action) {
   case "init":
     files = data.files;
-    init_game(data.mpq, data.spawn, data.offscreen).then(
+    init_game(data.mpq, data.spawn, data.offscreen, data.websocket).then(
       () => worker.postMessage({action: "loaded"}),
       e => worker.postMessage({action: "failed", error: e.toString(), stack: e.stack}));
     break;
   case "event":
     call_api(data.func, ...data.params);
     break;
+  default:
   }
 });

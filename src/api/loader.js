@@ -113,7 +113,7 @@ async function do_load_game(api, audio, mpq, spawn) {
       for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);
+      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen, websocket: window.gameServer}, transfer);
       delete fs.files;
     } catch (e) {
       reject(e);
