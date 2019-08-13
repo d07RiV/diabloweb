@@ -17,7 +17,7 @@ function decodeAudioData(context, buffer) {
 
 export default function init_sound() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
-  const StereoPannerNode = window.StereoPannerNode || window.webkitAudioPannerNode;
+  const StereoPannerNode = window.StereoPannerNode;
   if (!AudioContext) {
     return no_sound();
   }
