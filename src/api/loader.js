@@ -1,6 +1,7 @@
 import Worker from './game.worker.js';
 import init_sound from './sound';
 import load_spawn from './load_spawn';
+import webrtc_open from './webrtc';
 
 function onRender(api, ctx, {bitmap, images, text, clip, belt}) {
   if (bitmap) {
@@ -65,6 +66,12 @@ async function do_load_game(api, audio, mpq, spawn) {
   return await new Promise((resolve, reject) => {
     try {
       const worker = new Worker();
+
+      let packetQueue = [];
+      const webrtc = webrtc_open(data => {
+        packetQueue.push(data);
+      });
+
       worker.addEventListener("message", ({data}) => {
         switch (data.action) {
         case "loaded":
@@ -106,14 +113,28 @@ async function do_load_game(api, audio, mpq, spawn) {
         case "current_save":
           api.setCurrentSave(data.name);
           break;
+          case "packet":
+          webrtc.send(data.buffer);
+          break;
+        case "packetBatch":
+          for (let packet of data.batch) {
+            webrtc.send(packet);
+          }
+          break;
         default:
         }
-      });
+      });          
       const transfer= [];
       for (let [, file] of fs.files) {
         transfer.push(file.buffer);
       }
-      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen, websocket: window.gameServer}, transfer);
+      worker.postMessage({action: "init", files: fs.files, mpq, spawn, offscreen}, transfer);
+      setInterval(() => {
+        if (packetQueue.length) {
+          worker.postMessage({action: "packetBatch", batch: packetQueue}, packetQueue);
+          packetQueue.length = 0;
+        }
+      }, 20);
       delete fs.files;
     } catch (e) {
       reject(e);

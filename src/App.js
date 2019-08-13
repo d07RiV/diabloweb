@@ -7,6 +7,10 @@ import create_fs from './fs';
 import load_game from './api/loader';
 import { SpawnSizes } from './api/load_spawn';
 
+import Peer from 'peerjs';
+
+window.Peer = Peer;
+
 if (process.env.NODE_ENV === 'production') {
   ReactGA.initialize('UA-43123589-6');
   ReactGA.pageview('/');

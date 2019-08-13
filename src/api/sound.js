@@ -17,6 +17,7 @@ function decodeAudioData(context, buffer) {
 
 export default function init_sound() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const StereoPannerNode = window.StereoPannerNode || window.webkitAudioPannerNode;
   if (!AudioContext) {
     return no_sound();
   }
@@ -40,7 +41,7 @@ export default function init_sound() {
       sounds.set(id, {
         buffer: Promise.resolve(buffer),
         gain: context.createGain(),
-        panner: new StereoPannerNode(context, {pan: 0}),
+        panner: StereoPannerNode && new StereoPannerNode(context, {pan: 0}),
       });
     },
     create_sound(id, data) {
@@ -51,7 +52,7 @@ export default function init_sound() {
       sounds.set(id, {
         buffer,
         gain: context.createGain(),
-        panner: new StereoPannerNode(context, {pan: 0}),
+        panner: StereoPannerNode && new StereoPannerNode(context, {pan: 0}),
       });
     },
     duplicate_sound(id, srcId) {
@@ -65,7 +66,7 @@ export default function init_sound() {
       sounds.set(id, {
         buffer: src.buffer,
         gain: context.createGain(),
-        panner: new StereoPannerNode(context, {pan: 0}),
+        panner: StereoPannerNode && new StereoPannerNode(context, {pan: 0}),
       });
     },
     play_sound(id, volume, pan, loop) {
@@ -76,12 +77,18 @@ export default function init_sound() {
         }
         src.gain.gain.value = Math.pow(2.0, volume / 1000.0);
         const relVolume = Math.pow(2.0, pan / 1000.0);
-        src.panner.pan.value = 1.0 - 2.0 / (1.0 + relVolume);
+        if (src.panner) {
+          src.panner.pan.value = 1.0 - 2.0 / (1.0 + relVolume);
+        }
         src.source = src.buffer.then(buffer => {
           const source = context.createBufferSource();
           source.buffer = buffer;
           source.loop = !!loop;
-          source.connect(src.gain).connect(src.panner).connect(context.destination);
+          let node = source.connect(src.gain);
+          if (src.panner) {
+            node = node.connect(src.panner);
+          }
+          node.connect(context.destination);
           source.start();
           return source;
         });
