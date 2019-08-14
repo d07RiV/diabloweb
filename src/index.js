@@ -7,4 +7,7 @@ import App from './App';
 
 ReactDOM.render(<App />, document.getElementById('root'));
 
-serviceWorker.register();
+serviceWorker.register({
+  onUpdate() {
+  },
+});
