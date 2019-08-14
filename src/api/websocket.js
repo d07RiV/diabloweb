@@ -1,4 +1,4 @@
-export default async function websocket_open(url, handler) {
+async function do_websocket_open(url, handler) {
   const socket = new WebSocket(url);
   socket.binaryType = "arraybuffer";
   let versionCbk = null;
@@ -9,7 +9,7 @@ export default async function websocket_open(url, handler) {
     handler(data);
   });
   await new Promise((resolve, reject) => {
-    const onError = err => reject(err);
+    const onError = err => reject(1);
     socket.addEventListener("error", onError);
     socket.addEventListener("open", () => {
       socket.removeEventListener("error", onError);
@@ -19,7 +19,7 @@ export default async function websocket_open(url, handler) {
   await new Promise((resolve, reject) => {
     const to = setTimeout(() => {
       versionCbk = null;
-      reject(Error("connection timed out"));
+      reject(1);
     }, 5000);
     versionCbk = data => {
       clearTimeout(to);
@@ -30,7 +30,7 @@ export default async function websocket_open(url, handler) {
         if (version === 1) {
           resolve();
         } else {
-          reject("server version mismatch");
+          reject(2);
         }
       }
     };
@@ -45,4 +45,41 @@ export default async function websocket_open(url, handler) {
   clientInfo[4] = 0;
   socket.send(clientInfo);
   return socket;
+}
+
+export default function websocket_open(url, handler, finisher) {
+  let ws = null, pending = [];
+  const proxy = {
+    get readyState() {
+      return ws ? ws.readyState : 0;
+    },
+    send(msg) {
+      if (ws) {
+        ws.send(msg);
+      } else {
+        pending.push(msg.slice());
+      }
+    },
+    close() {
+      if (ws) {
+        ws.close();
+      } else {
+        pending = null;
+      }
+    },
+  };
+  do_websocket_open(url, handler).then(sock => {
+    ws = sock;
+    if (pending) {
+      for (let msg of pending) {
+        ws.send(msg);
+      }
+    } else {
+      ws.close();
+    }
+    finisher(0);
+  }, err => {
+    finisher(err);
+  });
+  return proxy;
 }

@@ -4,6 +4,8 @@ import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 
+import websocket_open from './websocket';
+
 const DiabloSize = 1466809;
 const SpawnSize = 1337416;
 
@@ -16,6 +18,7 @@ let files = null;
 let renderBatch = null;
 let drawBelt = null;
 let is_spawn = false;
+let websocket = null;
 
 const ChunkSize = 1 << 20;
 class RemoteFile {
@@ -116,8 +119,35 @@ const DApi = {
     worker.postMessage({action: "keyboard", rect: null});
   },
 
+  use_websocket(flag) {
+    if (flag) {
+      if (!websocket || websocket.readyState !== 1) {
+        const sock = websocket = websocket_open('ws://diablo.rivsoft.net/', data => {
+          if (websocket === sock) {
+            try_api(() => {
+              const ptr = wasm._DApi_AllocPacket(data.byteLength);
+              wasm.HEAPU8.set(new Uint8Array(data), ptr);
+            });
+          }
+        }, code => {
+          if (typeof code !== "number") {
+            worker.postMessage({action: "error", error: code.toString(), stack: code.stack});
+            code = 3;
+          }
+          call_api("SNet_WebsocketStatus", code);
+        });
+      } else {
+        call_api("SNet_WebsocketStatus", 0);
+      }
+    } else {
+      if (websocket) {
+        websocket.close();
+      }
+      websocket = null;
+    }
+  },
   websocket_closed() {
-    return false;
+    return websocket ? websocket.readyState !== 1 : false;
   },
 };
 
@@ -234,7 +264,9 @@ let maxSoundId = 0, maxBatchId = 0;
 
 let packetBatch = null;
 DApi.websocket_send = function(data) {
-  if (packetBatch) {
+  if (websocket) {
+    websocket.send(data);
+  } else if (packetBatch) {
     packetBatch.push(data.slice().buffer);
   } else {
     worker.postMessage({action: "packet", buffer: data});
@@ -249,9 +281,6 @@ function try_api(func) {
   try {
     func();
   } catch (e) {
-    if (typeof e === "string") {
-      worker.postMessage({action: ""})
-    }
     worker.postMessage({action: "error", error: e.toString(), stack: e.stack});
   }
 }
