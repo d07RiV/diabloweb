@@ -68,6 +68,25 @@ const TOUCH_MOVE = 0;
 const TOUCH_RMB = 1;
 const TOUCH_SHIFT = 2;
 
+function findKeyboardRule() {
+  for (let sheet of document.styleSheets) {
+    for (let rule of sheet.cssRules) {
+      if (rule.type === CSSRule.MEDIA_RULE && rule.conditionText === '(min-aspect-ratio: 3/1)') {
+        for (let sub of rule.cssRules) {
+          if (sub.selectorText === '.App.keyboard .Body .inner') {
+            return sub;
+          }
+        }
+      }
+    }
+  }
+}
+let keyboardRule = null;
+try {
+  keyboardRule = findKeyboardRule();
+} catch (e) {
+}
+
 const Link = ({children, ...props}) => <a target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
 
 class App extends React.Component {
@@ -80,6 +99,7 @@ class App extends React.Component {
   touchCtx = [null, null, null, null, null, null];
   touchMods = [false, false, false, false, false, false];
   touchBelt = [-1, -1, -1, -1, -1, -1];
+  maxKeyboard = 0;
 
   fs = create_fs(true);
 
@@ -144,14 +164,19 @@ class App extends React.Component {
         width: `${(100 * (rect[2] - rect[0] + 20) / 640).toFixed(2)}%`,
         height: `${(100 * (rect[3] - rect[1] + 20) / 640).toFixed(2)}%`,
       };
+      this.maxKeyboard = rect[4];
       this.element.classList.add("keyboard");
       Object.assign(this.keyboard.style, this.showKeyboard);
       this.keyboard.focus();
+      if (keyboardRule) {
+        keyboardRule.style.transform = `translate(-50%, ${(-(rect[1] + rect[3]) * 56.25 / 960).toFixed(2)}vw)`;
+      }
     } else {
       this.showKeyboard = false;
       this.element.classList.remove("keyboard");
       this.keyboard.blur();
       this.keyboard.value = "";
+      this.keyboardNum = 0;
     }
   }
 
@@ -336,22 +361,26 @@ class App extends React.Component {
   onMouseUp = e => {
     if (!this.canvas) return;
     if (e.target === this.keyboard) {
-      return;
+      //return;
     }
     const {x, y} = this.mousePos(e);
     this.game("DApi_Mouse", 2, this.mouseButton(e), this.eventMods(e), x, y);
-    e.preventDefault();
+    if (e.target !== this.keyboard) {
+      e.preventDefault();
+    }
   }
 
   onKeyDown = e => {
     if (!this.canvas) return;
     this.game("DApi_Key", 0, this.eventMods(e), e.keyCode);
-    if (e.keyCode >= 32 && e.key.length === 1 && !this.showKeyboard) {
+    if (!this.showKeyboard && (e.keyCode >= 32 && e.key.length === 1)) {
       this.game("DApi_Char", e.key.charCodeAt(0));
+    } else if (e.keyCode === 8 || e.keyCode === 13) {
+      this.game("DApi_Char", e.keyCode);
     }
     this.clearKeySel();
     if (!this.showKeyboard) {
-      if (e.keyCode === 8 || (e.keyCode >= 112 && e.keyCode <= 119)) {
+      if (e.keyCode === 8 || e.keyCode === 9 || (e.keyCode >= 112 && e.keyCode <= 119)) {
         e.preventDefault();
       }
     }
@@ -374,17 +403,31 @@ class App extends React.Component {
     }
   }
 
-  onKeyboard = () => {
+  onKeyboardInner(flags) {
     if (this.showKeyboard) {
       const text = this.keyboard.value;
-      const valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, 15);
+      let valid;
+      if (this.maxKeyboard > 0) {
+        valid = (text.match(/[\x20-\x7E]/g) || []).join("").substring(0, this.maxKeyboard);
+      } else {
+        const maxValue = -this.maxKeyboard;
+        if (text.match(/^\d*$/)) {
+          this.keyboardNum = Math.min(text.length ? parseInt(text) : 0, maxValue);
+        }
+        valid = (this.keyboardNum ? this.keyboardNum.toString() : "");
+      }
       if (text !== valid) {
         this.keyboard.value = valid;
       }
       this.clearKeySel();
-      const values = [...Array(15)].map((_, i) => i < valid.length ? valid.charCodeAt(i) : 0);
-      this.game("DApi_SyncText", ...values);
+      this.game("text", valid, flags);
     }
+  }
+  onKeyboard = () => {
+    this.onKeyboardInner(0);
+  }
+  onKeyboardBlur = () => {
+    this.onKeyboardInner(1);
   }
 
   parseFile = e => {
@@ -495,6 +538,8 @@ class App extends React.Component {
     if (!this.canvas) return;
     if (e.target === this.keyboard) {
       return;
+    } else {
+      this.keyboard.blur();
     }
     e.preventDefault();
     if (this.updateTouchButton(e.touches, false)) {
@@ -519,9 +564,10 @@ class App extends React.Component {
   onTouchEnd = e => {
     if (!this.canvas) return;
     if (e.target === this.keyboard) {
-      return;
+      //return;
+    } else {
+      e.preventDefault();
     }
-    e.preventDefault();
     const prevTc = this.touchCanvas;
     this.updateTouchButton(e.touches, true);
     if (prevTc && !this.touchCanvas) {
@@ -530,7 +576,7 @@ class App extends React.Component {
       this.game("DApi_Mouse", 2, 2, this.eventMods(e), x, y);
 
       if (this.touchMods[TOUCH_RMB] && (!this.touchButton || this.touchButton.index !== TOUCH_RMB)) {
-        this.setTouchButton(TOUCH_RMB, false);
+        this.setTouchMod(TOUCH_RMB, false);
       }
     }
     if (!document.fullscreenElement) {
@@ -574,7 +620,7 @@ class App extends React.Component {
         <div className="Body">
           <div className="inner">
             {!error && <canvas ref={this.setCanvas} width={640} height={480}/>}
-            <input type="text" className="keyboard" onChange={this.onKeyboard} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
+            <input type="text" className="keyboard" onChange={this.onKeyboard} onBlur={this.onKeyboardBlur} ref={this.setKeyboard} spellCheck={false} style={this.showKeyboard || {}}/>
           </div>
         </div>
         <div className="BodyV">

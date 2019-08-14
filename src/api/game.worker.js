@@ -4,8 +4,8 @@ import SpawnBinary from './DiabloSpawn.wasm';
 import SpawnModule from './DiabloSpawn.jscc';
 import axios from 'axios';
 
-const DiabloSize = 1316452;
-const SpawnSize = 1196648;
+const DiabloSize = 1466809;
+const SpawnSize = 1337416;
 
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
@@ -261,7 +261,19 @@ function call_api(func, ...params) {
     audioBatch = [];
     audioTransfer = [];
     packetBatch = [];
-    wasm["_" + func](...params);
+    if (func !== "text") {
+      wasm["_" + func](...params);
+    } else {
+      const ptr = wasm._DApi_SyncTextPtr();
+      const text = params[0];
+      const length = Math.min(text.length, 255);
+      const heap = wasm.HEAPU8;
+      for (let i = 0; i < length; ++i) {
+        heap[ptr + i] = text.charCodeAt(i);
+      }
+      heap[ptr + length] = 0;
+      wasm._DApi_SyncText(params[1]);
+    }
     if (audioBatch.length) {
       maxSoundId = maxBatchId;
       worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
