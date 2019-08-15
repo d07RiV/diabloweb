@@ -122,7 +122,7 @@ const DApi = {
   use_websocket(flag) {
     if (flag) {
       if (!websocket || websocket.readyState !== 1) {
-        const sock = websocket = websocket_open('ws://diablo.rivsoft.net/', data => {
+        const sock = websocket = websocket_open('wss://diablo.rivsoft.net/websocket', data => {
           if (websocket === sock) {
             try_api(() => {
               const ptr = wasm._DApi_AllocPacket(data.byteLength);

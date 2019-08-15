@@ -12,6 +12,7 @@ import { buffer_reader, read_packet, write_packet, client_packet, server_packet,
 }*/
 
 const PeerID = name => `diabloweb_${name}`;
+const Options = undefined;//{host: 'diablo.rivsoft.net', port: 80};
 const MAX_PLRS = 4;
 
 class webrtc_server {
@@ -23,7 +24,7 @@ class webrtc_server {
     this.onMessage = onMessage;
     this.onClose = onClose;
 
-    this.peer = new Peer(PeerID(name));
+    this.peer = new Peer(PeerID(name), Options);
     this.peer.on('connection', conn => this.onConnect(conn));
     this.players = [];
     this.myplr = 0;
@@ -159,7 +160,7 @@ class webrtc_client {
   pending = [];
 
   constructor(version, {cookie, name, password}, onMessage, onClose) {
-    this.peer = new Peer();
+    this.peer = new Peer(Options);
     this.conn = this.peer.connect(PeerID(name));
 
     let needUnreg = true;
