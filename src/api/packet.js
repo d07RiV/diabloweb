@@ -40,7 +40,7 @@ export class buffer_reader {
     this.pos += length;
     return result;
   }
-  rest() {
+  read_buf() {
     const size = this.read32();
     const result = this.buffer.subarray(this.pos, this.pos + size);
     this.pos += size;
@@ -86,9 +86,13 @@ export class buffer_writer {
     return this;
   }
   rest(value) {
-    this.write32(value.byteLength);
     this.buffer.set(value, this.pos);
     this.pos += value.byteLength;
+    return this;
+  }
+  write_buf(value) {
+    this.write32(value.byteLength);
+    this.rest(value);
     return this;
   }
 }
@@ -194,9 +198,9 @@ export const server_packet = {
   },
   message: {
     code: 0x01,
-    read: reader => ({id: reader.read8(), payload: reader.rest()}),
+    read: reader => ({id: reader.read8(), payload: reader.read_buf()}),
     size: ({payload}) => 5 + payload.byteLength,
-    write: (writer, {id, payload}) => writer.write8(id).rest(payload),
+    write: (writer, {id, payload}) => writer.write8(id).write_buf(payload),
   },
   turn: {
     code: 0x02,
@@ -246,9 +250,9 @@ export const client_packet = {
   },
   message: {
     code: 0x01,
-    read: reader => ({id: reader.read8(), payload: reader.rest()}),
+    read: reader => ({id: reader.read8(), payload: reader.read_buf()}),
     size: ({payload}) => 5 + payload.byteLength,
-    write: (writer, {id, payload}) => writer.write8(id).rest(payload),
+    write: (writer, {id, payload}) => writer.write8(id).write_buf(payload),
   },
   turn: {
     code: 0x02,

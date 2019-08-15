@@ -31,7 +31,7 @@ class webrtc_server {
     this.seed = Math.floor(Math.random() * Math.pow(2, 32));
 
     const onError = () => {
-      onMessage(server_packet.join_reject.write({cookie, reason: RejectionReason.CREATE_GAME_EXISTS}));
+      onMessage(write_packet(server_packet.join_reject, {cookie, reason: RejectionReason.CREATE_GAME_EXISTS}));
       onClose();
       this.peer.off('error', onError);
       this.peer.off('open', onOpen);
@@ -39,8 +39,8 @@ class webrtc_server {
     const onOpen = () => {
       //console.log('peer open');
       setTimeout(() => {
-        onMessage(server_packet.join_accept.write({cookie, index: 0, seed: this.seed, difficulty}));
-        onMessage(server_packet.connect.write({id: 0}));
+        onMessage(write_packet(server_packet.join_accept, {cookie, index: 0, seed: this.seed, difficulty}));
+        onMessage(write_packet(server_packet.connect, {id: 0}));
       }, 0);
       this.peer.off('error', onError);
       this.peer.off('open', onOpen);
@@ -64,23 +64,23 @@ class webrtc_server {
         break;
       case client_packet.join_game.code:
         if (peer.version !== this.version) {
-          conn.send(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_VERSION_MISMATCH}));
+          conn.send(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_VERSION_MISMATCH}));
         } else if (pkt.name !== this.name) {
-          conn.send(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_GAME_NOT_FOUND}));
+          conn.send(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_GAME_NOT_FOUND}));
         } else if (pkt.password !== this.password) {
-          conn.send(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_INCORRECT_PASSWORD}));
+          conn.send(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_INCORRECT_PASSWORD}));
         } else {
           let i = 1;
           while (i < MAX_PLRS && this.players[i]) {
             ++i;
           }
           if (i >= MAX_PLRS) {
-            conn.send(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_GAME_FULL}));            
+            conn.send(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_GAME_FULL}));            
           } else {
             this.players[i] = peer;
             peer.id = i;
-            conn.send(server_packet.join_accept.write({cookie: pkt.cookie, index: i, seed: this.seed, difficulty: this.difficulty}));
-            this.send(0xFF, server_packet.connect.write({id: i}));
+            conn.send(write_packet(server_packet.join_accept, {cookie: pkt.cookie, index: i, seed: this.seed, difficulty: this.difficulty}));
+            this.send(0xFF, write_packet(server_packet.connect, {id: i}));
           }
         }
         break;
@@ -122,11 +122,11 @@ class webrtc_server {
       for (let i = 1; i < MAX_PLRS; ++i) {
         this.drop(i, 0x40000006);
       }
-      this.onMessage(server_packet.disconnect.write({id, reason}));
+      this.onMessage(write_packet(server_packet.disconnect, {id, reason}));
       this.peer.destroy();
       this.onClose();
     } else if (this.players[id]) {
-      this.send(0xFF, server_packet.disconnect.write({id, reason}));
+      this.send(0xFF, write_packet(server_packet.disconnect, {id, reason}));
       this.players[id].id = null;
       if (this.players[id].conn) {
         this.players[id].conn.close();
@@ -144,10 +144,10 @@ class webrtc_server {
       this.drop(pkt.id, pkt.reason);
       break;
     case client_packet.message.code:
-      this.send(pkt.id === 0xFF ? ~(1 << id) : (1 << pkt.id), server_packet.message.write({id, payload: pkt.payload}));
+      this.send(pkt.id === 0xFF ? ~(1 << id) : (1 << pkt.id), write_packet(server_packet.message, {id, payload: pkt.payload}));
       break;
     case client_packet.turn.code:
-      this.send(~(1 << id), server_packet.turn.write({id, turn: pkt.turn}));
+      this.send(~(1 << id), write_packet(server_packet.turn, {id, turn: pkt.turn}));
       break;
     default:
       throw Error(`invalid packet ${code}`);
@@ -174,13 +174,13 @@ class webrtc_client {
       clearTimeout(timeout);
     };
     const onError = () => {
-      onMessage(server_packet.join_reject.write({cookie, reason: RejectionReason.JOIN_GAME_NOT_FOUND}));
+      onMessage(write_packet(server_packet.join_reject, {cookie, reason: RejectionReason.JOIN_GAME_NOT_FOUND}));
       onClose();
       unreg();
     };
     const onOpen = () => {
-      this.conn.send(client_packet.info.write({version}));
-      this.conn.send(client_packet.join_game.write({cookie, name, password}));
+      this.conn.send(write_packet(client_packet.info, {version}));
+      this.conn.send(write_packet(client_packet.join_game, {cookie, name, password}));
       for (let pkt of this.pending) {
         this.conn.send(pkt);
       }
@@ -251,14 +251,14 @@ export default function webrtc_open(onMessage) {
         break;
       case client_packet.create_game.code:
         if (server || client) {
-          onMessage(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_ALREADY_IN_GAME}));
+          onMessage(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_ALREADY_IN_GAME}));
         } else {
           server = new webrtc_server(version, pkt, onMessage, () => server = null);
         }
         break;
       case client_packet.join_game.code:
         if (server || client) {
-          onMessage(server_packet.join_reject.write({cookie: pkt.cookie, reason: RejectionReason.JOIN_ALREADY_IN_GAME}));
+          onMessage(write_packet(server_packet.join_reject, {cookie: pkt.cookie, reason: RejectionReason.JOIN_ALREADY_IN_GAME}));
         } else {
           client = new webrtc_client(version, pkt, onMessage, () => client = null);
         }

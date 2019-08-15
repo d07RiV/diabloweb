@@ -48,32 +48,46 @@ async function do_websocket_open(url, handler) {
 }
 
 export default function websocket_open(url, handler, finisher) {
-  let ws = null, pending = [];
+  let ws = null, batch = [], intr = null;
   const proxy = {
     get readyState() {
       return ws ? ws.readyState : 0;
     },
     send(msg) {
-      if (ws) {
-        ws.send(msg);
-      } else {
-        pending.push(msg.slice());
-      }
+      batch.push(msg.slice());
     },
     close() {
+      if (intr) {
+        clearInterval(intr);
+        intr = null;
+      }
       if (ws) {
         ws.close();
       } else {
-        pending = null;
+        batch = null;
       }
     },
   };
   do_websocket_open(url, handler).then(sock => {
     ws = sock;
-    if (pending) {
-      for (let msg of pending) {
-        ws.send(msg);
-      }
+    if (batch) {
+      intr = setInterval(() => {
+        if (!batch.length) {
+          return;
+        }
+        const size = batch.reduce((sum, msg) => sum + msg.byteLength, 3);
+        const buffer = new Uint8Array(size);
+        buffer[0] = 0;
+        buffer[1] = (batch.length & 0xFF);
+        buffer[2] = batch.length >> 8;
+        let pos = 3;
+        for (let msg of batch) {
+          buffer.set(msg, pos);
+          pos += msg.byteLength;
+        }
+        ws.send(buffer);
+        batch.length = 0;
+      }, 100);
     } else {
       ws.close();
     }
