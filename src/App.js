@@ -249,6 +249,10 @@ class App extends React.Component {
       this.fs.then(fs => fs.upload(file)).then(console.log(`Updated ${file.name}`));
       return;
     }
+    if (file && !file.name.match(/\.mpq$/i)) {
+      window.alert('Please select an MPQ file. If you downloaded the installer from GoG, you will need to install it on PC and use the MPQ file from the installation folder.');
+      return;
+    }
 
     document.removeEventListener("drop", this.onDrop, true);
     document.removeEventListener("dragover", this.onDragOver, true);
