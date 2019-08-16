@@ -1,6 +1,6 @@
 import IdbKvStore from  'idb-kv-store';
 
-const importStorage = () => new Promise((resolve, reject) => {
+/*const importStorage = () => new Promise((resolve, reject) => {
   let done = false;
   const frame = document.createElement('iframe');
   window.addEventListener('message', ({data}) => {
@@ -28,7 +28,7 @@ const importStorage = () => new Promise((resolve, reject) => {
       resolve(null);
     }
   }, 10000);
-});
+});*/
 
 async function downloadFile(store, name) {
   const file = await store.get(name.toLowerCase());
@@ -75,7 +75,7 @@ export default async function create_fs(load) {
     for (let [name, data] of Object.entries(await store.json())) {
       files.set(name, data);
     }
-    if (load) {
+    /*if (load) {
       const files = await importStorage();
       if (files) {
         for (let [name, data] of files) {
@@ -83,7 +83,7 @@ export default async function create_fs(load) {
           store.set(name, data);
         }
       }
-    }
+    }*/
     window.DownloadFile = name => downloadFile(store, name);
     window.DownloadSaves = () => downloadSaves(store);
     return {

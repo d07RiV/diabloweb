@@ -1,6 +1,6 @@
 {
   "name": "diabloweb",
-  "version": "1.0.31",
+  "version": "1.0.33",
   "private": true,
   "dependencies": {
     "@babel/core": "7.4.3",
@@ -54,6 +54,7 @@
     "resolve": "1.10.0",
     "sass-loader": "7.1.0",
     "semver": "6.0.0",
+    "sourcemapped-stacktrace": "^1.1.9",
     "style-loader": "0.23.1",
     "terser-webpack-plugin": "1.2.3",
     "ts-pnp": "1.1.2",

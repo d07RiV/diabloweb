@@ -3,6 +3,8 @@ import './App.scss';
 import classNames from 'classnames';
 import ReactGA from 'react-ga';
 
+import { mapStackTrace } from 'sourcemapped-stacktrace';
+
 import create_fs from './fs';
 import load_game from './api/loader';
 import { SpawnSizes } from './api/load_spawn';
@@ -153,7 +155,13 @@ class App extends React.Component {
   }
 
   onError(message, stack) {
-    this.setState(({error}) => !error && {error: {message, stack}});
+    if (stack) {
+      mapStackTrace(stack, stack => {
+        this.setState(({error}) => !error && {error: {message, stack: stack.join("\n")}});
+      });
+    } else {
+      this.setState(({error}) => !error && {error: {message}});
+    }
   }
 
   openKeyboard(rect) {
