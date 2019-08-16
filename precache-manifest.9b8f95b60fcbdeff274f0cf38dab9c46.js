@@ -1,27 +1,27 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "bcb294ed54712304d589f3848076d997",
-    "url": "/diabloweb/3ea2aea1bc4999c41904.worker.js"
+    "revision": "0ab2707bc779a2f7885f96bfe8a2de8b",
+    "url": "/diabloweb/af24cb7d0fe507aaacf6.worker.js"
   },
   {
-    "revision": "5cd2cf9e9eb0d39dd240454e7bc23fa1",
+    "revision": "0840de7d276f50f57f2c7c5ec6d23f01",
     "url": "/diabloweb/index.html"
   },
   {
-    "revision": "709aa7307b9b56e95438",
-    "url": "/diabloweb/static/css/main.23365a12.chunk.css"
+    "revision": "567a4f8e2938091b4792",
+    "url": "/diabloweb/static/css/main.20f27eda.chunk.css"
   },
   {
-    "revision": "3cf69fc31045d26b8c18",
-    "url": "/diabloweb/static/js/0.59ece602.chunk.js"
+    "revision": "b854ae255ac6a8d35e79",
+    "url": "/diabloweb/static/js/0.1560967a.chunk.js"
   },
   {
-    "revision": "f151fcec72d8c7c08714",
-    "url": "/diabloweb/static/js/5.5f991af8.chunk.js"
+    "revision": "ff142f33a9837ea7c521",
+    "url": "/diabloweb/static/js/5.658f752c.chunk.js"
   },
   {
-    "revision": "709aa7307b9b56e95438",
-    "url": "/diabloweb/static/js/main.5e17653e.chunk.js"
+    "revision": "567a4f8e2938091b4792",
+    "url": "/diabloweb/static/js/main.2178d81b.chunk.js"
   },
   {
     "revision": "077fe45e700d7971de0b",
@@ -32,8 +32,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/runtime~storage.83a78cef.js"
   },
   {
-    "revision": "df76980f824b0a5ccccc",
-    "url": "/diabloweb/static/js/storage.96fdea8b.chunk.js"
+    "revision": "830be50b1a9f807371db",
+    "url": "/diabloweb/static/js/storage.63e17357.chunk.js"
   },
   {
     "revision": "570bd59ab481c6418fcd26ed12f9da86",
@@ -56,7 +56,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/media/shift.b40e4a63.svg"
   },
   {
-    "revision": "d436101b7261d5a4b19e8b027781387d",
+    "revision": "11c5bd83c68e34c9f85c7bdb925d3dcd",
     "url": "/diabloweb/storage.html"
   }
 ]);
