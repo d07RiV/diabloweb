@@ -287,9 +287,12 @@ function try_api(func) {
 
 function call_api(func, ...params) {
   try_api(() => {
-    audioBatch = [];
-    audioTransfer = [];
-    packetBatch = [];
+    const nested = (audioBatch != null);
+    if (!nested) {
+      audioBatch = [];
+      audioTransfer = [];
+      packetBatch = [];
+    }
     if (func !== "text") {
       wasm["_" + func](...params);
     } else {
@@ -303,16 +306,18 @@ function call_api(func, ...params) {
       heap[ptr + length] = 0;
       wasm._DApi_SyncText(params[1]);
     }
-    if (audioBatch.length) {
-      maxSoundId = maxBatchId;
-      worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
+    if (!nested) {
+      if (audioBatch.length) {
+        maxSoundId = maxBatchId;
+        worker.postMessage({action: "audioBatch", batch: audioBatch}, audioTransfer);
+      }
+      if (packetBatch.length) {
+        worker.postMessage({action: "packetBatch", batch: packetBatch}, packetBatch);
+      }
+      audioBatch = null;
+      audioTransfer = null;
+      packetBatch = null;
     }
-    if (packetBatch.length) {
-      worker.postMessage({action: "packetBatch", batch: packetBatch}, packetBatch);
-    }
-    audioBatch = null;
-    audioTransfer = null;
-    packetBatch = null;
   });
 }
 

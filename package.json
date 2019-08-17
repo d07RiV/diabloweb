@@ -1,6 +1,6 @@
 {
   "name": "diabloweb",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "private": true,
   "dependencies": {
     "@babel/core": "7.4.3",
