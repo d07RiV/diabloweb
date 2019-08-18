@@ -102,7 +102,7 @@ async function do_load_game(api, audio, mpq, spawn) {
           api.onError(data.error, data.stack);
           break;
         case "failed":
-          reject(Error(data.stack || data.error));
+          reject({message: data.error, stack: data.stack});
           break;
         case "progress":
           api.onProgress({text: data.text, loaded: data.loaded, total: data.total});

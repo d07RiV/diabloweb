@@ -155,13 +155,19 @@ class App extends React.Component {
   }
 
   onError(message, stack) {
-    if (stack) {
-      mapStackTrace(stack, stack => {
-        this.setState(({error}) => !error && {error: {message, stack: stack.join("\n")}});
-      });
-    } else {
-      this.setState(({error}) => !error && {error: {message}});
-    }
+    (async () => {
+      const errorObject = {message};
+      if (this.saveName) {
+        errorObject.save = await (await this.fs).fileUrl(this.saveName);
+      }
+      if (stack) {
+        mapStackTrace(stack, stack => {
+          this.setState(({error}) => !error && {error: {...errorObject, stack: stack.join("\n")}});
+        });
+      } else {
+        this.setState(({error}) => !error && {error: errorObject});
+      }
+    })();
   }
 
   openKeyboard(rect) {
@@ -641,7 +647,7 @@ class App extends React.Component {
               <p className="header">The following error has occurred:</p>
               <p className="body">{error.message}</p>
               <p className="footer">Click to create an issue on GitHub</p>
-              {this.saveName != null && <p className="link" onClick={this.downloadSave}>Download save file</p>}
+              {error.save != null && <a href={error.save} download={this.saveName}>Download save file</a>}
             </Link>
           )}
           {!!loading && !started && !error && (

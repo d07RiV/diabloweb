@@ -93,6 +93,13 @@ export default async function create_fs(load) {
       clear: () => store.clear(),
       download: name => downloadFile(store, name),
       upload: file => uploadFile(store, files, file),
+      fileUrl: async name => {
+        const file = await store.get(name.toLowerCase());
+        if (file) {
+          const blob = new Blob([file], {type: 'binary/octet-stream'});
+          return URL.createObjectURL(blob);
+        }
+      },
     };
   } catch (e) {
     window.DownloadFile = () => console.error('IndexedDB is not supported');
@@ -104,6 +111,7 @@ export default async function create_fs(load) {
       clear: () => Promise.resolve(),
       download: () => Promise.resolve(),
       upload: () => Promise.resolve(),
+      fileUrl: () => Promise.resolve(),
     };
   }  
 }

@@ -20,6 +20,14 @@ let drawBelt = null;
 let is_spawn = false;
 let websocket = null;
 
+function onError(err, action="error") {
+  if (err instanceof Error) {
+    worker.postMessage({action, error: err.toString(), stack: err.stack});
+  } else {
+    worker.postMessage({action, error: err.toString()});
+  }
+}
+
 const ChunkSize = 1 << 20;
 class RemoteFile {
   constructor(url) {
@@ -27,7 +35,7 @@ class RemoteFile {
     request.open('HEAD', url, false);
     request.send();
     if (request.status < 200 || request.status >= 300) {
-      worker.postMessage({action: "error", error: `Failed to load remote file`});
+      throw Error('Failed to load remote file');
     }
     this.byteLength = parseInt(request.getResponseHeader('Content-Length'));
 
@@ -54,7 +62,7 @@ class RemoteFile {
       request.responseType = 'arraybuffer';
       request.send();
       if (request.status < 200 || request.status >= 300) {
-        worker.postMessage({action: "error", error: `Failed to load remote file`});
+        throw Error('Failed to load remote file');
       } else {
         const header = request.getResponseHeader('Content-Range');
         let m, start = 0;
@@ -75,7 +83,7 @@ class RemoteFile {
 
 const DApi = {
   exit_error(error) {
-    worker.postMessage({action: "error", error});
+    throw Error(error);
   },
 
   exit_game() {
@@ -131,10 +139,10 @@ const DApi = {
           }
         }, code => {
           if (typeof code !== "number") {
-            worker.postMessage({action: "error", error: code.toString(), stack: code.stack});
-            code = 3;
+            throw code;
+          } else {
+            call_api("SNet_WebsocketStatus", code);
           }
-          call_api("SNet_WebsocketStatus", code);
         });
       } else {
         call_api("SNet_WebsocketStatus", 0);
@@ -150,7 +158,7 @@ const DApi = {
     return websocket ? websocket.readyState !== 1 : false;
   },
 };
-
+/*
 let frameTime = 0, lastTime = 0;
 function getFPS() {
   const time = performance.now();
@@ -161,7 +169,7 @@ function getFPS() {
   lastTime = time;
   return frameTime ? 1000.0 / frameTime : 0.0;
 }
-
+*/
 const DApi_renderLegacy = {
   draw_begin() {
     renderBatch = {
@@ -281,7 +289,7 @@ function try_api(func) {
   try {
     func();
   } catch (e) {
-    worker.postMessage({action: "error", error: e.toString(), stack: e.stack});
+    onError(e);
   }
 }
 
@@ -409,7 +417,7 @@ worker.addEventListener("message", ({data}) => {
     files = data.files;
     init_game(data.mpq, data.spawn, data.offscreen).then(
       () => worker.postMessage({action: "loaded"}),
-      e => worker.postMessage({action: "failed", error: e.toString(), stack: e.stack}));
+      e => onError(e, "failed"));
     break;
   case "event":
     call_api(data.func, ...data.params);
