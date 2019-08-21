@@ -2,6 +2,9 @@ import React from 'react';
 import './App.scss';
 import classNames from 'classnames';
 import ReactGA from 'react-ga';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTimes, faDownload } from '@fortawesome/free-solid-svg-icons';
+import getPlayerName from './api/savefile';
 
 import { mapStackTrace } from 'sourcemapped-stacktrace';
 
@@ -127,6 +130,7 @@ class App extends React.Component {
       if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({has_spawn: true});
       }
+      this.updateSaves();
     });
   }
 
@@ -218,10 +222,29 @@ class App extends React.Component {
   setCurrentSave(name) {
     this.saveName = name;
   }
-  downloadSave = e => {
-    this.fs.then(fs => this.saveName && fs.download(this.saveName));
-    e.stopPropagation();
-    e.preventDefault();
+
+  updateSaves() {
+    this.fs.then(fs => {
+      const saves = [];
+      [...fs.files.keys()].filter(name => name.match(/\.sv$/i)).forEach(name => {
+        saves.push(name);
+        console.log(name, getPlayerName(fs.files.get(name).buffer));
+      });
+      this.setState({save_names: saves});
+    });
+  }
+  removeSave(name) {
+    if (window.confirm(`Are you sure you want to delete ${name}?`)) {
+      (async () => {
+        const fs = await this.fs;
+        await fs.delete(name.toLowerCase());
+        fs.files.delete(name.toLowerCase());
+        this.updateSaves();
+      })();
+    }
+  }
+  downloadSave(name) {
+    this.fs.then(fs => fs.download(name));
   }
 
   drawBelt(idx, slot) {
@@ -260,7 +283,12 @@ class App extends React.Component {
 
   start(file) {
     if (file && file.name.match(/\.sv$/i)) {
-      this.fs.then(fs => fs.upload(file)).then(console.log(`Updated ${file.name}`));
+      this.fs.then(fs => fs.upload(file)).then(() => {
+        this.updateSaves();
+      });
+      return;
+    }
+    if (this.state.show_saves) {
       return;
     }
     if (file && !file.name.match(/\.mpq$/i)) {
@@ -455,6 +483,13 @@ class App extends React.Component {
     }
   }
 
+  parseSave = e => {
+    const files = e.target.files;
+    if (files.length > 0) {
+      this.start(files[0]);
+    }
+  }
+
   touchButton = null;
   touchCanvas = null;
 
@@ -622,7 +657,29 @@ class App extends React.Component {
   }
 
   render() {
-    const {started, loading, error, progress, dropping, has_spawn} = this.state;
+    const {started, loading, error, progress, dropping, has_spawn, save_names, show_saves} = this.state;
+    if (show_saves && save_names) {
+      return (
+        <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
+          <div className="BodyV">
+            <div className="start">
+              <ul className="saveList">
+                {save_names.map(name => <li key={name}>
+                  {name}
+                  <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)}/>
+                  <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)}/>
+                </li>)}
+              </ul>
+              <form>
+                <label htmlFor="loadFile" className="startButton">Upload Save</label>
+                <input accept=".sv" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseSave}/>
+              </form>
+              <span className="startButton" onClick={() => this.setState({show_saves: false})}>Back</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
@@ -678,6 +735,7 @@ class App extends React.Component {
                 <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
               </form>
               <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
+              {!!(save_names && save_names.length) && <span className="startButton" onClick={() => this.setState({show_saves: true})}>Manage Saves</span>}
             </div>
           )}
         </div>

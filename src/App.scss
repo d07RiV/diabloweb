@@ -122,6 +122,28 @@ body, #root, .App {
         background-color: #111;
       }
     }
+    .saveList {
+      border: 1px solid #fff;
+      text-align: left;
+      li {
+        padding: 0 6px;
+        .btnRemove {
+          color: #f88;
+          float: right;
+          cursor: pointer;
+          margin: 0 4px;
+        }
+        .btnDownload {
+          color: #fff;
+          float: right;
+          cursor: pointer;
+          margin: 0 4px;
+        }
+        &:hover {
+          background-color: #444;
+        }
+      }
+    }
   }
 }
 
