@@ -14,8 +14,8 @@ export default class CompressMpq extends React.Component {
   onProgress(progress) {
     this.setState({progress});
   }
-  onDone = result => {
-    const blob = new Blob([result], {type: 'binary/octet-stream'});
+  onDone = blob => {
+    //const blob = new Blob([result], {type: 'binary/octet-stream'});
     const url = URL.createObjectURL(blob);
     this.setState({url});
 

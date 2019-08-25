@@ -1160,7 +1160,7 @@ try {
 }
 
 var TOTAL_STACK = Module['TOTAL_STACK'] || 5242880;
-var TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 536870912;
+var TOTAL_MEMORY = Module['TOTAL_MEMORY'] || 134217728;
 if (TOTAL_MEMORY < TOTAL_STACK) err('TOTAL_MEMORY should be larger than TOTAL_STACK, was ' + TOTAL_MEMORY + '! (TOTAL_STACK=' + TOTAL_STACK + ')');
 
 // Initialize the runtime's memory
@@ -1697,7 +1697,7 @@ function _put_file_size(size){ self.DApi.put_file_size(size); }
 
 STATIC_BASE = GLOBAL_BASE;
 
-STATICTOP = STATIC_BASE + 113200;
+STATICTOP = STATIC_BASE + 28880;
 /* global initializers */  __ATINIT__.push();
 
 
@@ -1706,7 +1706,7 @@ STATICTOP = STATIC_BASE + 113200;
 
 
 
-var STATIC_BUMP = 113200;
+var STATIC_BUMP = 28880;
 Module["STATIC_BASE"] = STATIC_BASE;
 Module["STATIC_BUMP"] = STATIC_BUMP;
 
@@ -2112,7 +2112,8 @@ var asm =Module["asm"]// EMSCRIPTEN_END_ASM
 (Module.asmGlobalArg, Module.asmLibraryArg, buffer);
 
 Module["asm"] = asm;
-var _DApi_MpqCmp = Module["_DApi_MpqCmp"] = function() {  return Module["asm"]["_DApi_MpqCmp"].apply(null, arguments) };
+var _DApi_Alloc = Module["_DApi_Alloc"] = function() {  return Module["asm"]["_DApi_Alloc"].apply(null, arguments) };
+var _DApi_Compress = Module["_DApi_Compress"] = function() {  return Module["asm"]["_DApi_Compress"].apply(null, arguments) };
 var ___cxa_can_catch = Module["___cxa_can_catch"] = function() {  return Module["asm"]["___cxa_can_catch"].apply(null, arguments) };
 var ___cxa_is_pointer_type = Module["___cxa_is_pointer_type"] = function() {  return Module["asm"]["___cxa_is_pointer_type"].apply(null, arguments) };
 var ___em_js__do_error = Module["___em_js__do_error"] = function() {  return Module["asm"]["___em_js__do_error"].apply(null, arguments) };
