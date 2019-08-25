@@ -110,7 +110,9 @@ body, #root, .App {
       margin: 10px 0;
     }
     .startButton {
-      display: inline-block;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
       border: 1px solid #fff;
       background: #000;
       font-size: 2em;
@@ -127,14 +129,24 @@ body, #root, .App {
       text-align: left;
       li {
         padding: 0 6px;
+        .info {
+          color: #888;
+          margin-left: 6px;
+        }
         .btnRemove {
-          color: #f88;
+          color: #800;
+          &:hover {
+            color: #f00;
+          }
           float: right;
           cursor: pointer;
           margin: 0 4px;
         }
         .btnDownload {
-          color: #fff;
+          color: #888;
+          &:hover {
+            color: #fff;
+          }
           float: right;
           cursor: pointer;
           margin: 0 4px;

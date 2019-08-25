@@ -1,25 +1,28 @@
 const W = new Uint32Array(80);
 
-const SHA1CircularShift = (shift, value) => ((value << shift) | (value >>> (32 - shift)));
+const SHA1CircularShift = (shift, value) => ((value << shift) | (value >> (32 - shift)));
 
 class SHA1 {
-  state = new Uint32Array(5);
+  digest = new Uint32Array(5);
   count = 0;
 
-  input(u8) {
+  input8(u8) {
     const u32 = new Uint32Array(u8.buffer, u8.byteOffset, 16);
-    context.count += data.length * 32;
+    this.input(u32);
+  }
+  input(u32) {
+    this.count += u32.length * 32;
     for (let i = 0; i < 16; ++i) {
       W[i] = u32[i];
     }
     for (let i = 16; i < 80; ++i) {
       W[i] = W[i - 16] ^ W[i - 14] ^ W[i - 8] ^ W[i - 3];
     }
-    let A = this.state[0];
-    let B = this.state[1];
-    let C = this.state[2];
-    let D = this.state[3];
-    let E = this.state[4];
+    let A = this.digest[0];
+    let B = this.digest[1];
+    let C = this.digest[2];
+    let D = this.digest[3];
+    let E = this.digest[4];
 
     for (let i = 0; i < 20; i++) {
       const temp = SHA1CircularShift(5, A) + ((B & C) | ((~B) & D)) + E + W[i] + 0x5A827999;
@@ -57,21 +60,21 @@ class SHA1 {
       A = temp | 0;
     }
 
-    this.state[0] += A;
-    this.state[1] += B;
-    this.state[2] += C;
-    this.state[3] += D;
-    this.state[4] += E;
+    this.digest[0] += A;
+    this.digest[1] += B;
+    this.digest[2] += C;
+    this.digest[3] += D;
+    this.digest[4] += E;
   }
 
   constructor() {
-	  this.state[0] = 0x67452301;
-	  this.state[1] = 0xEFCDAB89;
-	  this.state[2] = 0x98BADCFE;
-	  this.state[3] = 0x10325476;
-    this.state[4] = 0xC3D2E1F0;
+	  this.digest[0] = 0x67452301;
+	  this.digest[1] = 0xEFCDAB89;
+	  this.digest[2] = 0x98BADCFE;
+	  this.digest[3] = 0x10325476;
+    this.digest[4] = 0xC3D2E1F0;
     
-    this.result = new Uint8Array(this.state.buffer);
+    this.digest8 = new Uint8Array(this.digest.buffer);
   }
 }
 
@@ -85,16 +88,10 @@ class Random {
   }
 }
 
-struct CodecSignature {
-	DWORD checksum;
-	BYTE error;
-	BYTE last_chunk_size;
-	WORD unused;
-};
-
 function codec_init_key(password) {
   const rand = new Random(0x7058);
   const key = new Uint8Array(136);
+  const k32 = new Uint32Array(key.buffer);
   for (let i = 0; i < 136; ++i) {
     key[i] = rand.next();
   }
@@ -103,62 +100,50 @@ function codec_init_key(password) {
     pw[i] = password.charCodeAt(i % password.length);
   }
 
-  const sha = new SHA1();
-  sha.input(pw);
+  let sha = new SHA1();
+  sha.input8(pw);
 
-  for (let i = 0; i < 136; ++i) {
-    key[i] ^= sha.result[i % sha.result.length];
+  for (let i = 0; i < 34; ++i) {
+    k32[i] ^= sha.digest[i % sha.digest.length];
   }
 
   sha = new SHA1();
-  sha.input(key.subarray(72));
+  sha.input(k32.subarray(18));
   return sha;
 }
 
-function codec_decode(data, password) {
-  const sha = codec_init_key(password);
+export default function codec_decode(data, password) {
   if (data.length <= 8) {
     return;
   }
   const size = data.length - 8;
-  if ()
-	char buf[128];
-	char dst[SHA1HashSize];
-	int i;
-	CodecSignature *sig;
+  if (size % 64) {
+    return;
+  }
 
-	codec_init_key(0, pszPassword);
-	if (size <= 8)
-		return 0;
-	size = size - 8;
-	if (size % 64 != 0)
-		return 0;
-	for (i = size; i != 0; pbSrcDst += 64, i -= 64) {
-		memcpy(buf, pbSrcDst, 64);
-		SHA1Result(0, dst);
-		for (int j = 0; j < 64; j++) {
-			buf[j] ^= dst[j % SHA1HashSize];
-		}
-		SHA1Calculate(0, buf, NULL);
-		memset(dst, 0, sizeof(dst));
-		memcpy(pbSrcDst, buf, 64);
-	}
+  if (data[size + 4]) {
+    return;
+  }
 
-	memset(buf, 0, sizeof(buf));
-	sig = (CodecSignature *)pbSrcDst;
-	if (sig->error > 0) {
-		size = 0;
-		SHA1Clear();
-	} else {
-		SHA1Result(0, dst);
-    if (sig->checksum != *(DWORD *)dst) {
-			memset(dst, 0, sizeof(dst));
-			size = 0;
-			SHA1Clear();
-		} else {
-			size += sig->last_chunk_size - 64;
-			SHA1Clear();
-		}
-	}
-	return size;
+  const last_size = data[size + 5];
+  const result_size = size + last_size - 64;
+  const result = new Uint8Array(result_size);
+
+  const sha = codec_init_key(password);
+  const size32 = size >> 2;
+  const data32 = new Uint32Array(data.buffer, data.byteOffset, size32 + 1);
+  const buf32 = new Uint32Array(16);
+  const buf = new Uint8Array(buf32.buffer);
+
+  for (let i = 0; i < size32; i += 16) {
+    for (let j = 0; j < 16; ++j) {
+      buf32[j] = data32[i + j] ^ sha.digest[j % sha.digest.length];
+    }
+    sha.input(buf32);
+    result.set(i === size32 - 16 ? buf.subarray(0, last_size) : buf, i * 4);
+  }
+  if (data32[size32] !== sha.digest[0]) {
+    return;
+  }
+  return result;
 }

@@ -7,14 +7,6 @@ const MpqSize = 356747;
 /* eslint-disable-next-line no-restricted-globals */
 const worker = self;
 
-function onError(err, action="error") {
-  if (err instanceof Error) {
-    worker.postMessage({action, error: err.toString(), stack: err.stack});
-  } else {
-    worker.postMessage({action, error: err.toString()});
-  }
-}
-
 let input_file = null;
 let output_file = null;
 let last_progress = 0;
@@ -31,6 +23,7 @@ const DApi = {
     array.set(input_file.subarray(offset, offset + array.byteLength));
   },
   put_file_size(size) {
+    debugger;
     output_file = new Uint8Array(size);
   },
   put_file_contents(array, offset) {
@@ -65,25 +58,27 @@ const readFile = (file, progress) => new Promise((resolve, reject) => {
   reader.readAsArrayBuffer(file);
 });
 
-async function initWasm(spawn, progress) {
+async function initWasm(progress) {
   const binary = await axios.request({
-    url: spawn ? SpawnBinary : DiabloBinary,
+    url: MpqBinary,
     responseType: 'arraybuffer',
     onDownloadProgress: progress,
   });
-  const result = await (spawn ? SpawnModule : DiabloModule)({wasmBinary: binary.data}).ready;
-  progress({loaded: 2000000});
+  const result = await MpqModule({
+    wasmBinary: binary.data,
+  }).ready;
+  progress({loaded: MpqSize});
   return result;
 }
 
 async function run(mpq) {
   progress("Loading...");
-  let mpqLoaded = 0, mpqTotal = (mpq ? mpq.size : 0), wasmLoaded = 0, wasmTotal = (spawn ? SpawnSize : DiabloSize);
+  let mpqLoaded = 0, mpqTotal = (mpq ? mpq.size : 0), wasmLoaded = 0, wasmTotal = MpqSize;
   const wasmWeight = 5;
   function updateProgress() {
     progress("Loading...", mpqLoaded + wasmLoaded * wasmWeight, mpqTotal + wasmTotal * wasmWeight);
   }
-  const loadWasm = initWasm(spawn, e => {
+  const loadWasm = initWasm(e => {
     wasmLoaded = Math.min(e.loaded, wasmTotal);
     updateProgress();
   });
@@ -95,7 +90,7 @@ async function run(mpq) {
 
   input_file = new Uint8Array(mpq);
 
-  progress("Initializing...");
+  progress("Processing...");
 
   wasm._DApi_MpqCmp(input_file.length);
 
@@ -105,9 +100,9 @@ async function run(mpq) {
 worker.addEventListener("message", ({data}) => {
   switch (data.action) {
   case "run":
-    init_game(data.mpq).then(
-      res => worker.postMessage({action: "result", data: res}, [res]),
-      e => onError(e, "failed"));
+    run(data.mpq).then(
+      result => worker.postMessage({action: "result", result}, [result]),
+      err => worker.postMessage({action: "error", error: err.toString(), stack: err.stack}));
     break;
   default:
   }

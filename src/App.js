@@ -11,6 +11,7 @@ import { mapStackTrace } from 'sourcemapped-stacktrace';
 import create_fs from './fs';
 import load_game from './api/loader';
 import { SpawnSizes } from './api/load_spawn';
+import CompressMpq from './mpqcmp';
 
 import Peer from 'peerjs';
 
@@ -130,7 +131,9 @@ class App extends React.Component {
       if (spawn && SpawnSizes.includes(spawn.byteLength)) {
         this.setState({has_spawn: true});
       }
-      this.updateSaves();
+      if ([...fs.files.keys()].filter(name => name.match(/\.sv$/i)).length) {
+        this.setState({save_names: true});
+      }
     });
   }
 
@@ -138,7 +141,11 @@ class App extends React.Component {
     const file = getDropFile(e);
     if (file) {
       e.preventDefault();
-      this.start(file);
+      if (this.compressMpq) {
+        this.compressMpq.start(file);
+      } else {
+        this.start(file);
+      }
     }
     this.setState({dropping: 0});
   }
@@ -223,12 +230,18 @@ class App extends React.Component {
     this.saveName = name;
   }
 
+  showSaves = () => {
+    if (this.state.save_names === true) {
+      this.updateSaves().then(() => this.setState({show_saves: !this.state.show_saves}));
+    } else {
+      this.setState({show_saves: !this.state.show_saves});
+    }
+  }
   updateSaves() {
-    this.fs.then(fs => {
-      const saves = [];
+    return this.fs.then(fs => {
+      const saves = {};
       [...fs.files.keys()].filter(name => name.match(/\.sv$/i)).forEach(name => {
-        saves.push(name);
-        console.log(name, getPlayerName(fs.files.get(name).buffer));
+        saves[name] = getPlayerName(fs.files.get(name).buffer, name);
       });
       this.setState({save_names: saves});
     });
@@ -302,7 +315,7 @@ class App extends React.Component {
     document.removeEventListener("dragleave", this.onDragLeave, true);
     this.setState({dropping: 0});
 
-    const retail = !!(file && file.name.match(/^diabdat\.mpq$/i));
+    const retail = !!(file && !file.name.match(/^spawn\.mpq$/i));
     if (process.env.NODE_ENV === 'production') {
       ReactGA.event({
         category: 'Game',
@@ -656,30 +669,78 @@ class App extends React.Component {
     }
   }
 
-  render() {
-    const {started, loading, error, progress, dropping, has_spawn, save_names, show_saves} = this.state;
-    if (show_saves && save_names) {
+  renderUi() {
+    const {started, loading, error, progress, has_spawn, save_names, show_saves, compress} = this.state;
+    if (show_saves && typeof save_names === "object") {
+      const plrClass = ["Warrior", "Rogue", "Sorcerer"];
       return (
-        <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
-          <div className="BodyV">
-            <div className="start">
-              <ul className="saveList">
-                {save_names.map(name => <li key={name}>
-                  {name}
-                  <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)}/>
-                  <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)}/>
-                </li>)}
-              </ul>
-              <form>
-                <label htmlFor="loadFile" className="startButton">Upload Save</label>
-                <input accept=".sv" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseSave}/>
-              </form>
-              <span className="startButton" onClick={() => this.setState({show_saves: false})}>Back</span>
-            </div>
-          </div>
+        <div className="start">
+          <ul className="saveList">
+            {Object.entries(save_names).map(([name, info]) => <li key={name}>
+              {name}{info ? <span className="info">{info.name} (lv. {info.level} {plrClass[info.cls]})</span> : ""}
+              <FontAwesomeIcon className="btnDownload" icon={faDownload} onClick={() => this.downloadSave(name)}/>
+              <FontAwesomeIcon className="btnRemove" icon={faTimes} onClick={() => this.removeSave(name)}/>
+            </li>)}
+          </ul>
+          <form>
+            <label htmlFor="loadFile" className="startButton">Upload Save</label>
+            <input accept=".sv" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseSave}/>
+          </form>
+          <div className="startButton" onClick={() => this.setState({show_saves: false})}>Back</div>
+        </div>
+      );
+    } else if (compress) {
+      return (
+        <CompressMpq api={this} ref={e => this.compressMpq = e}/>
+      );
+    } else if (error) {
+      return (
+        <Link className="error" href={reportLink(error, this.state.retail)}>
+          <p className="header">The following error has occurred:</p>
+          <p className="body">{error.message}</p>
+          <p className="footer">Click to create an issue on GitHub</p>
+          {error.save != null && <a href={error.save} download={this.saveName}>Download save file</a>}
+        </Link>
+      );
+    } else if (loading && !started) {
+      return (
+        <div className="loading">
+          {(progress && progress.text) || 'Loading...'}
+          {progress != null && !!progress.total && (
+            <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress.loaded / progress.total)}%`}}/></span></span>
+          )}
+        </div>
+      );
+    } else if (!started) {
+      return (
+        <div className="start">
+          <p>
+            This is a web port of the original Diablo game, based on source code reconstructed by
+            GalaXyHaXz and devilution team. The project page with information and links can be found over here <Link href="https://github.com/d07RiV/diabloweb">https://github.com/d07RiV/diabloweb</Link>
+          </p>
+          <p>
+            If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
+            The game can be purchased from <Link href="https://www.gog.com/game/diablo">GoG</Link>.
+            {" "}<span className="link" onClick={() => this.setState({compress: true})}>Click here to compress the MPQ, greatly reducing its size.</span>
+          </p>
+          {!has_spawn && (
+            <p>
+              Or you can play the shareware version for free (50MB download).
+            </p>
+          )}
+          <form>
+            <label htmlFor="loadFile" className="startButton">Select MPQ</label>
+            <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
+          </form>
+          <div className="startButton" onClick={() => this.start()}>Play Shareware</div>
+          {!!save_names && <div className="startButton" onClick={this.showSaves}>Manage Saves</div>}
         </div>
       );
     }
+  }
+
+  render() {
+    const {started, error, dropping} = this.state;
     return (
       <div className={classNames("App", {touch: this.touchControls, started, dropping, keyboard: !!this.showKeyboard})} ref={this.setElement}>
         <div className="touch-ui touch-mods">
@@ -699,45 +760,7 @@ class App extends React.Component {
           </div>
         </div>
         <div className="BodyV">
-          {!!error && (
-            <Link className="error" href={reportLink(error, this.state.retail)}>
-              <p className="header">The following error has occurred:</p>
-              <p className="body">{error.message}</p>
-              <p className="footer">Click to create an issue on GitHub</p>
-              {error.save != null && <a href={error.save} download={this.saveName}>Download save file</a>}
-            </Link>
-          )}
-          {!!loading && !started && !error && (
-            <div className="loading">
-              {(progress && progress.text) || 'Loading...'}
-              {progress != null && !!progress.total && (
-                <span className="progressBar"><span><span style={{width: `${Math.round(100 * progress.loaded / progress.total)}%`}}/></span></span>
-              )}
-            </div>
-          )}
-          {!started && !loading && !error && (
-            <div className="start">
-              <p>
-                This is a web port of the original Diablo game, based on source code reconstructed by
-                GalaXyHaXz and devilution team. The project page with information and links can be found over here <Link href="https://github.com/d07RiV/diabloweb">https://github.com/d07RiV/diabloweb</Link>
-              </p>
-              <p>
-                If you own the original game, you can drop the original DIABDAT.MPQ onto this page or click the button below to start playing.
-                The game can be purchased from <Link href="https://www.gog.com/game/diablo">GoG</Link>.
-              </p>
-              {!has_spawn && (
-                <p>
-                  Or you can play the shareware version for free (50MB download).
-                </p>
-              )}
-              <form>
-                <label htmlFor="loadFile" className="startButton">Select MPQ</label>
-                <input accept=".mpq" type="file" id="loadFile" style={{display: "none"}} onChange={this.parseFile}/>
-              </form>
-              <span className="startButton" onClick={() => this.start()}>Play Shareware</span>
-              {!!(save_names && save_names.length) && <span className="startButton" onClick={() => this.setState({show_saves: true})}>Manage Saves</span>}
-            </div>
-          )}
+          {this.renderUi()}
         </div>
       </div>
     );

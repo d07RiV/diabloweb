@@ -1,4 +1,5 @@
 import { explode } from './explode';
+import codec_decode from './codec';
 
 function pkzip_decompress(data, out_size) {
   if (data.length === out_size) {
@@ -43,7 +44,7 @@ const hashtable = (function() {
   }
   return hashtable;
 })();
-function decrypt(u32, key) {
+export function decrypt(u32, key) {
   let seed = 0xEEEEEEEE;
   for (let i = 0; i < u32.length; ++i) {
     seed += hashtable[0x400 + (key & 0xFF)];
@@ -52,10 +53,23 @@ function decrypt(u32, key) {
     key = ((~key << 0x15) + 0x11111111) | (key >>> 0x0B);
   }
 }
-function decrypt8(u8, key) {
+export function decrypt8(u8, key) {
   decrypt(new Uint32Array(u8.buffer, u8.byteOffset, u8.length >> 2), key);
 }
-function hash(name, type) {
+export function encrypt(u32, key) {
+  let seed = 0xEEEEEEEE;
+  for (let i = 0; i < u32.length; ++i) {
+    seed += hashtable[0x400 + (key & 0xFF)];
+    const orig = u32[i];
+    u32[i] ^= seed + key;
+    seed = (orig + seed * 33 + 3) | 0;
+    key = ((~key << 0x15) + 0x11111111) | (key >>> 0x0B);
+  }
+}
+export function encrypt8(u8, key) {
+  encrypt(new Uint32Array(u8.buffer, u8.byteOffset, u8.length >> 2), key);
+}
+export function hash(name, type) {
   let seed1 = 0x7FED7FED;
   let seed2 = 0xEEEEEEEE;
   for (let i = 0; i < name.length; ++i) {
@@ -72,7 +86,7 @@ function hash(name, type) {
   return seed1 >>> 0;
 }
 
-function path_name(name) {
+export function path_name(name) {
   const pos = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
   return name.substring(pos + 1);
 }
@@ -90,11 +104,11 @@ const Flags = {
   Exists: 0x80000000,
 };
 
-class MpqReader {
+export class MpqReader {
   constructor(buffer) {
     this.buffer = buffer;
     this.u8 = new Uint8Array(buffer);
-    this.u32 = new Uint32Array(buffer);
+    this.u32 = new Uint32Array(buffer, 0, buffer.byteLength >> 2);
 
     this.readHeader();
   }
@@ -132,79 +146,81 @@ class MpqReader {
     }
   }
 
-  read(name) {
+  readRaw(name) {
     const index = this.fileIndex(name);
     if (index == null) {
       return;
     }
     const block = this.hashTable[index * 4 + 3];
-    const filePos = this.blockTable[block * 4];
-    let cmpSize = this.blockTable[block * 4 + 1];
-    const fileSize = this.blockTable[block * 4 + 2];
-    const flags = this.blockTable[block * 4 + 3];
-
-    if (flags & Flags.PatchFile) {
+    const info = {
+      filePos: this.blockTable[block * 4],
+      cmpSize: this.blockTable[block * 4 + 1],
+      fileSize: this.blockTable[block * 4 + 2],
+      flags: this.blockTable[block * 4 + 3],
+      key: hash(path_name(name), 3),
+    };
+    if ((info.flags & Flags.PatchFile) || info.filePos + info.cmpSize > this.buffer.byteLength) {
       return;
     }
-    if (!(flags & Flags.Compressed)) {
-      cmpSize = fileSize;
+    if (!(info.flags & Flags.Compressed)) {
+      info.cmpSize = info.fileSize;
     }
-
-    let key = hash(path_name(name), 3);
-    if (flags & Flags.FixSeed) {
-      key = (key + filePos) ^ fileSize;
+    if (info.flags & Flags.FixSeed) {
+      info.key = (info.key + info.filePos) ^ info.fileSize;
     }
+    return {info, data: new Uint8Array(this.buffer, info.filePos, info.cmpSize)};
+  }
 
-    if (flags & Flags.SingleUnit) {
-      const raw = new Uint8Array(this.buffer, filePos, cmpSize);
-      if (raw.length !== cmpSize) {
+  read(name) {
+    const raw = this.readRaw(name);
+    if (!raw) {
+      return;
+    }
+    let {info, data} = raw;
+    data = data.slice();
+
+    if (info.flags & Flags.SingleUnit) {
+      if (info.flags & Flags.Encrypted) {
+        decrypt8(data, info.key);
+      }
+      if (info.flags & Flags.CompressMulti) {
         return;
+      } else if (info.flags & Flags.CompressPkWare) {
+        return pkzip_decompress(data, info.fileSize);
       }
-      if (flags & Flags.Encrypted) {
-        decrypt8(raw, key);
-      }
-      if (flags & Flags.CompressMulti) {
-        return;
-      } else if (flags & Flags.CompressPkWare) {
-        return pkzip_decompress(raw, fileSize);
-      }
-      return raw;
-    } else if (!(flags & Flags.Compressed)) {
-      const raw = Uint8Array(this.buffer, filePos, fileSize);
-      if (raw.length !== fileSize) {
-        return;
-      }
-      if (flags & Flags.Encrypted) {
-        for (let i = 0; i < fileSize; i += this.blockSize) {
-          decrypt8(raw.subarray(i, Math.min(fileSize, i + this.blockSize)), key + i / this.blockSize);
+      return data;
+    } else if (!(info.flags & Flags.Compressed)) {
+      if (info.flags & Flags.Encrypted) {
+        for (let i = 0; i < info.fileSize; i += this.blockSize) {
+          decrypt8(data.subarray(i, Math.min(info.fileSize, i + this.blockSize)), info.key + i / this.blockSize);
         }
       }
-      return raw;
+      return data;
     } else {
-      const numBlocks = Math.floor((fileSize + this.blockSize - 1) / this.blockSize);
-      const tableSize = numBlocks + 1 + ((flags & Flags.SectorCrc) ? 1 : 0);
-      const blocks = new Uint32Array(this.buffer, filePos, tableSize);
-      if (blocks.length !== tableSize) {
+      const numBlocks = Math.floor((info.fileSize + this.blockSize - 1) / this.blockSize);
+      const tableSize = numBlocks + 1;
+      if (data.length < tableSize * 4) {
         return;
       }
-      if (flags & Flags.Encrypted) {
-        decrypt(blocks, key - 1);
+      const blocks = new Uint32Array(data.buffer, 0, tableSize);
+      if (info.flags & Flags.Encrypted) {
+        decrypt(blocks, info.key - 1);
       }
-      const output = new Uint8Array(fileSize);
+      const output = new Uint8Array(info.fileSize);
       for (let i = 0; i < numBlocks; ++i) {
         const oPos = i * this.blockSize;
-        const cSize = blocks[i + 1] - blocks[i];
-        const uSize = Math.min(this.blockSize, fileSize - oPos);
-        let tmp = new Uint8Array(this.buffer, filePos + blocks[i], cSize);
-        if (tmp.length !== cSize) {
+        const uSize = Math.min(this.blockSize, info.fileSize - oPos);
+        if (blocks[i + 1] > data.length) {
           return;
         }
-        if (flags & Flags.Encrypted) {
-          decrypt8(tmp, key + i);
+        let tmp = data.subarray(blocks[i], blocks[i + 1]);
+        if (info.flags & Flags.Encrypted) {
+          // this is not safe, but our files are small enough
+          decrypt8(tmp, info.key + i);
         }
-        if (flags & Flags.CompressMulti) {
+        if (info.flags & Flags.CompressMulti) {
           return;
-        } else if (flags & Flags.CompressPkWare) {
+        } else if (info.flags & Flags.CompressPkWare) {
           tmp = pkzip_decompress(tmp, uSize);
         }
         if (!tmp || tmp.length !== uSize) {
@@ -217,12 +233,28 @@ class MpqReader {
   }
 }
 
-export default function getPlayerName(data) {
-  debugger;
+function getPassword(name) {
+  if (name.match(/spawn\d+\.sv/i)) {
+    return 'lshbkfg1'; // single, spawn
+  } else if (name.match(/share_\d+\.sv/i)) {
+    return 'lshbkfg1'; // multi, spawn
+  } else if (name.match(/multi_\d+\.sv/i)) {
+    return 'szqnlsk1'; // multi, retail
+  } else {
+    return 'xrgyrkj1'; // single, retail
+  }
+}
+
+export default function getPlayerName(data, name) {
   try {
     const reader = new MpqReader(data);
-    const hero = reader.read("hero");
-    return '';
+    const hero = codec_decode(reader.read("hero"), getPassword(name));
+    const nameEnd = hero.indexOf(0, 16);
+    const result = {};
+    result.name = String.fromCharCode(...hero.subarray(16, nameEnd));
+    result.cls = hero[48];
+    result.level = hero[53];
+    return result;
   } catch (e) {
     return null;
   }
