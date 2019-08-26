@@ -67,7 +67,9 @@ export default async function compress(mpq, progress) {
   }
   const loader = file => e => { file.loaded = e.loaded; updateProgress(); };
 
-  const fHeader = {loaded: 0, weight: 1, total: mpq.size};
+  const mpqsize = mpq.size;
+
+  const fHeader = {loaded: 0, weight: 1, total: mpqsize};
   fHeader.ready = readFile(mpq.slice(0, 32), loader(fHeader));
   files.push(fHeader);
 
@@ -91,7 +93,7 @@ export default async function compress(mpq, progress) {
   const blockTablePos = header[5];
   const hashTableSize = header[6];
   const blockTableSize = header[7];
-  if (hashTablePos + hashTableSize * 16 > mpq.size || blockTablePos + blockTableSize * 16 > mpq.size) {
+  if (hashTablePos + hashTableSize * 16 > mpqsize || blockTablePos + blockTableSize * 16 > mpqsize) {
     throw Error('invalid MPQ file');
   }
 
@@ -119,7 +121,7 @@ export default async function compress(mpq, progress) {
   for (let i = 0; i < NUM_TASKS; ++i) {
     tasks.push({
       entries: [],
-      min: mpq.size,
+      min: mpqsize,
       max: 0,
       progress: 0,
     });
@@ -139,7 +141,7 @@ export default async function compress(mpq, progress) {
     const filePos = blockTable[index * 4];
     const cSize = blockTable[index * 4 + 1];
 
-    const task = tasks[Math.floor(filePos * NUM_TASKS / mpq.size)];
+    const task = tasks[Math.floor(filePos * NUM_TASKS / mpqsize)];
     task.entries.push(i);
     task.min = Math.min(task.min, filePos);
     task.max = Math.max(task.max, filePos + cSize);
