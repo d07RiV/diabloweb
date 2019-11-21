@@ -11,8 +11,8 @@ import { buffer_reader, read_packet, write_packet, client_packet, server_packet,
   }
 }*/
 
-const PeerID = name => `diabloweb_${name}`;
-const Options = {host: 'diablo.rivsoft.net', port: 443, secure: true};
+const PeerID = name => `diabloweb_dDv62yHQrZJP28tBEHL_${name}`;
+const Options = {port: 443, secure: true};
 const MAX_PLRS = 4;
 
 class webrtc_server {
