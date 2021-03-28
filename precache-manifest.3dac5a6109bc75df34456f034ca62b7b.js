@@ -1,19 +1,19 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "040c19322138c05dbe656f00bf7d9a7d",
-    "url": "/diabloweb/559256dc812e37cc8bb5.worker.js"
+    "revision": "71ba5fb375752153c9bc4a1c34faaa99",
+    "url": "/diabloweb/8acc76fdb6ee253c485e.worker.js"
   },
   {
-    "revision": "84295573488973f434291055ed9bbbff",
-    "url": "/diabloweb/b6959098d798174bd69f.worker.js"
+    "revision": "4115803155f6ffac29dc0498aae8c82f",
+    "url": "/diabloweb/d2271be9a67638d3642f.worker.js"
   },
   {
-    "revision": "aa5990b26ec2af1a052ce9dbf9838e37",
+    "revision": "20661cdca14f65e7f2b74f7739be9cc2",
     "url": "/diabloweb/index.html"
   },
   {
-    "revision": "4bfb1f4cbbd7e8ddffcd",
-    "url": "/diabloweb/static/css/main.fe873d2c.chunk.css"
+    "revision": "2ea328faa56b6a4bd092",
+    "url": "/diabloweb/static/css/main.e1dd4272.chunk.css"
   },
   {
     "revision": "ced5f643588b32106eeb",
@@ -24,8 +24,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/5.430d8c5c.chunk.js"
   },
   {
-    "revision": "4bfb1f4cbbd7e8ddffcd",
-    "url": "/diabloweb/static/js/main.62369ba5.chunk.js"
+    "revision": "2ea328faa56b6a4bd092",
+    "url": "/diabloweb/static/js/main.0a18bc0c.chunk.js"
   },
   {
     "revision": "077fe45e700d7971de0b",
@@ -36,8 +36,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/js/runtime~storage.83a78cef.js"
   },
   {
-    "revision": "2a86d31d77ff808426f1",
-    "url": "/diabloweb/static/js/storage.13abf7f9.chunk.js"
+    "revision": "8e36c4353450853391cd",
+    "url": "/diabloweb/static/js/storage.8fcdd212.chunk.js"
   },
   {
     "revision": "570bd59ab481c6418fcd26ed12f9da86",
@@ -68,7 +68,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/diabloweb/static/media/shift.b40e4a63.svg"
   },
   {
-    "revision": "2a406d87aece2c756a7af013eb2cd8ef",
+    "revision": "469777abc7b73bbcc138f5508946c162",
     "url": "/diabloweb/storage.html"
   }
 ]);
