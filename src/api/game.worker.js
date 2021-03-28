@@ -403,7 +403,7 @@ async function init_game(mpq, spawn, offscreen) {
 
   const vers = process.env.VERSION.match(/(\d+)\.(\d+)\.(\d+)/);
 
-  wasm._SNet_InitWebsocket();
+  //wasm._SNet_InitWebsocket();
   wasm._DApi_Init(Math.floor(performance.now()), offscreen ? 1 : 0, parseInt(vers[1]), parseInt(vers[2]), parseInt(vers[3]));
 
   setInterval(() => {
