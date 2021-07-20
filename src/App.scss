@@ -231,7 +231,7 @@ body, #root, .App {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 25vh;
+    width: 20vh;
     .touch-button {
       position: absolute;
       left: 50%;
@@ -244,20 +244,38 @@ body, #root, .App {
       mask-size: 100% 100%;
     }
     .touch-button-0 {
-      top: 16.7vh;
+      top: 15vh;
     }
     .touch-button-1 {
-      top: 50vh;
+      top: 35vh;
     }
     .touch-button-2 {
-      top: 83.3vh;
+      top: 55vh;
+    }
+    .touch-button-3 {
+      top: 70vh;
+      left: 5vw;
+    }
+    .touch-button-4 {
+      top: 70vh;
+      left: 11vw;
+    }
+    
+    .touch-button-5 {
+      top: 85vh;
+      left: 5vw;
+    }
+
+    .touch-button-6 {
+      top: 85vh;
+      left: 11vw;
     }
   }
   .touch-ui.touch-mods {
     left: 0;
     .touch-button {
-      width: 20vh;
-      height: 20vh;
+      width: 15vh;
+      height: 15vh;
       border-radius: 10vh;
     }
     .touch-button-0 {
@@ -269,12 +287,24 @@ body, #root, .App {
     .touch-button-2 {
       mask-image: url(./icons/shift.svg);
     }
+    .touch-button-3 {
+      mask-image: url(./icons/f5.svg);
+    }
+    .touch-button-4 {
+      mask-image: url(./icons/f6.svg);
+    }
+    .touch-button-5 {
+      mask-image: url(./icons/f7.svg);
+    }
+    .touch-button-6 {
+      mask-image: url(./icons/f8.svg);
+    }
   }
   .touch-ui.touch-belt {
     right: 0;
     .touch-button {
-      width: 14vh;
-      height: 14vh;
+      width: 12vh;
+      height: 12vh;
       font-size: 1vh;
       border-radius: 20%;
       overflow: hidden;

@@ -101,7 +101,7 @@ class App extends React.Component {
   cursorPos = {x: 0, y: 0};
 
   touchControls = false;
-  touchButtons = [null, null, null, null, null, null];
+  touchButtons = [null, null, null, null, null, null, null, null, null, null];
   touchCtx = [null, null, null, null, null, null];
   touchMods = [false, false, false, false, false, false];
   touchBelt = [-1, -1, -1, -1, -1, -1];
@@ -118,6 +118,11 @@ class App extends React.Component {
     this.setTouch3 = this.setTouchBelt_.bind(this, 3);
     this.setTouch4 = this.setTouchBelt_.bind(this, 4);
     this.setTouch5 = this.setTouchBelt_.bind(this, 5);
+
+    this.setTouch6 = this.setTouch_.bind(this, 6);
+    this.setTouch7 = this.setTouch_.bind(this, 7);
+    this.setTouch8 = this.setTouch_.bind(this, 8);
+    this.setTouch9 = this.setTouch_.bind(this, 9);
   }
 
   componentDidMount() {
@@ -560,13 +565,18 @@ class App extends React.Component {
     }
     this.touchButton = touchOther;
     if (touchOther) {
-      this.setTouchMod(touchOther.index, true);
-      if (touchOther.index === TOUCH_MOVE) {
-        this.setTouchMod(TOUCH_RMB, false);
-      } else if (touchOther.index === TOUCH_RMB) {
-        this.setTouchMod(TOUCH_MOVE, false);
+      if (touchOther.index < 6) {
+        this.setTouchMod(touchOther.index, true);
+        if (touchOther.index === TOUCH_MOVE) {
+          this.setTouchMod(TOUCH_RMB, false);
+        } else if (touchOther.index === TOUCH_RMB) {
+          this.setTouchMod(TOUCH_MOVE, false);
+        }
+        delete this.panPos;
+      } else {
+        // touching F key
+        this.game("DApi_Key", 0, 0, 110 + touchOther.index);
       }
-      delete this.panPos;
     } else if (touches.length === 2) {
       const x = (touches[1].clientX + touches[0].clientX) / 2, y = (touches[1].clientY + touches[0].clientY) / 2;
       if (this.panPos) {
@@ -747,6 +757,11 @@ class App extends React.Component {
           <div className={classNames("touch-button", "touch-button-0", {active: this.touchMods[0]})} ref={this.setTouch0}/>
           <div className={classNames("touch-button", "touch-button-1", {active: this.touchMods[1]})} ref={this.setTouch1}/>
           <div className={classNames("touch-button", "touch-button-2", {active: this.touchMods[2]})} ref={this.setTouch2}/>
+          
+          <div className={classNames("touch-button", "touch-button-3")} ref={this.setTouch6}/>
+          <div className={classNames("touch-button", "touch-button-4")} ref={this.setTouch7}/>
+          <div className={classNames("touch-button", "touch-button-5")} ref={this.setTouch8}/>
+          <div className={classNames("touch-button", "touch-button-6")} ref={this.setTouch9}/>
         </div>
         <div className="touch-ui touch-belt">
           <div className={classNames("touch-button", "touch-button-0")} ref={this.setTouch3}/>
