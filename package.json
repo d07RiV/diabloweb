@@ -3,7 +3,6 @@
   "version": "1.0.39",
   "private": true,
   "dependencies": {
-    "@babel/core": "7.4.3",
     "@fortawesome/fontawesome-svg-core": "^1.2.21",
     "@fortawesome/free-solid-svg-icons": "^5.10.1",
     "@fortawesome/react-fontawesome": "^0.1.4",
@@ -51,7 +50,7 @@
     "postcss-safe-parser": "4.0.1",
     "react": "^16.8.6",
     "react-app-polyfill": "^1.0.1",
-    "react-dev-utils": "^11.0.4",
+    "react-dev-utils": "^9.0.7",
     "react-dom": "^16.8.6",
     "react-ga": "^2.6.0",
     "resolve": "1.10.0",
@@ -135,11 +134,15 @@
   },
   "babel": {
     "presets": [
-      "react-app"
+      "@babel/preset-env",
+      "@babel/preset-react"
     ]
   },
   "homepage": "https://d07riv.github.io/diabloweb",
   "devDependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/preset-env": "^7.14.7",
+    "@babel/preset-react": "^7.14.5",
     "exports-loader": "^0.7.0",
     "gh-pages": "^2.0.1",
     "node-sass": "^4.14.1",
