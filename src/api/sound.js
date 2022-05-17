@@ -25,6 +25,7 @@ export default function init_sound() {
   let context = null;
   try {
     context = new AudioContext();
+    context.resume();
   } catch (e) {
   }
   const sounds = new Map();
