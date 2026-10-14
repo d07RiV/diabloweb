@@ -54,7 +54,7 @@
     "react-dom": "^16.8.6",
     "react-ga": "^2.6.0",
     "resolve": "1.10.0",
-    "sass-loader": "7.1.0",
+    "sass-loader": "^7.3.1",
     "semver": "6.0.0",
     "sourcemapped-stacktrace": "^1.1.9",
     "style-loader": "0.23.1",
@@ -69,7 +69,10 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
+    "build:single": "node scripts/build-single-html.js",
+    "serve:single": "node scripts/serve-dist.js",
     "test": "node scripts/test.js",
+    "test:single": "node scripts/test-single-file.js && node scripts/test-single-html.js",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
@@ -145,7 +148,7 @@
     "@babel/preset-react": "^7.14.5",
     "exports-loader": "^0.7.0",
     "gh-pages": "^2.0.1",
-    "node-sass": "^4.14.1",
+    "sass": "^1.105.1",
     "worker-loader": "^2.0.0"
   }
 }
