@@ -23,3 +23,7 @@ public/spawn.mpq
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# single-file build output (the finished document itself is committed)
+/dist/*
+!/dist/diabloweb.html
